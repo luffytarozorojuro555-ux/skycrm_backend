@@ -129,16 +129,28 @@ export const createLead = async (req, res) => {
   req.shouldLog = true;
   const { name, phone, email, city, source, assignedTo, teamId, statusName } = req.body;
   // Check for duplicate by BOTH email and phone
-  let duplicate = null;
-  if (email || phone) {
-    duplicate = await Lead.findOne({ email: email, phone: phone });
+  // let duplicate = null;
+  // if (email || phone) {
+  //   duplicate = await Lead.findOne({ email: email, phone: phone });
+  // }
+  // if (duplicate) {
+  //   return res.status(400).json({
+  //     error: "Lead creation unsuccessful. Lead already existed",
+  //     target: email,
+  //   });
+  // }
+
+let duplicate = null;
+  if (phone) {
+    duplicate = await Lead.findOne({ phone });
+  }
+  if (!duplicate && email) {
+    duplicate = await Lead.findOne({ email });
   }
   if (duplicate) {
-    return res.status(400).json({
-      error: "Lead creation unsuccessful. Lead already existed",
-      target: email,
-    });
+    return res.status(400).json({ error: 'Lead already existed' });
   }
+  
   // Always use 'New' status if not provided
   let status = null;
   if (statusName) {
@@ -340,6 +352,35 @@ export const importLeads = async (req, res) => {
     if (rows.length === 0) {
       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
     }
+
+    // Check for duplicates before insertion
+    const validRows = [];
+    for (const row of rows) {
+      // Check for duplicate by either phone or email
+      let duplicate = null;
+      if (row.phone) {
+        duplicate = await Lead.findOne({ phone: row.phone });
+      }
+      if (!duplicate && row.email) {
+        duplicate = await Lead.findOne({ email: row.email });
+      }
+      if (duplicate) {
+        errors.push({ row, error: 'Lead already existed' });
+        continue;
+      }
+      validRows.push(row);
+    }
+
+    if (validRows.length === 0) {
+      return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
+    }
+
+    const inserted = await Lead.insertMany(validRows);
+    res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
+  } catch (e) {
+    console.error('Import failed:', e);
+    res.status(500).json({ error: 'Import failed' });
+  }
 
     const inserted = await Lead.insertMany(rows, { ordered: false });
     req.logInfo = {
