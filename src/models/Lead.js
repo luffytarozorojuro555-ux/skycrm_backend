@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 const LeadSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  phone: { type: String, required: true },
-  email: { type: String },
+  phone: { type: String, required: true ,unique: true},
+  email: { type: String ,unique: true, sparse: true},
   city: { type: String },
   source: { type: String },
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
