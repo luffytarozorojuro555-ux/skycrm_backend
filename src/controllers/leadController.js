@@ -303,6 +303,77 @@ export const uploadAttachment = async (req, res) => {
     message: "Attachment" + req.file.originalname + " uploaded successfully",
   });
 };
+export const importLeads = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const source = req.body?.source?.toString().trim();
+    if (!source) return res.status(400).json({ error: 'Source is required' });
+
+    let statusDoc = await Status.findOne({ name: 'New' });
+    if (!statusDoc) {
+      statusDoc = await Status.create({ name: 'New', color: '#10b981' });
+    }
+
+    const rows = [];
+    const errors = [];
+    const toLeadDoc = (row) => {
+      const name = (row.name || row.Name || row.fullname || '').toString().trim();
+      const phone = (row.phone || row.Phone || row.mobile || '').toString().trim();
+      const email = (row.email || row.Email || '').toString().trim() || undefined;
+      const city = (row.city || row.City || '').toString().trim() || undefined;
+
+      if (!name) return { error: 'Missing name' };
+      if (!phone) return { error: 'Missing phone' };
+      // basic phone validation: 7-15 digits allowing +, space, -
+      const normalized = phone.replace(/[^0-9]/g, '');
+      if (normalized.length < 7 || normalized.length > 15) return { error: 'Invalid phone' };
+
+      return {
+        name,
+        phone,
+        email,
+        city,
+        source,
+        status: statusDoc._id,
+        history: [{ status: statusDoc._id, by: req.user.userId, at: new Date() }]
+      };
+    };
+
+    await new Promise((resolve, reject) => {
+      const stream = Readable.from(req.file.buffer);
+      stream
+        .pipe(csv())
+        .on('data', (row) => {
+          const doc = toLeadDoc(row);
+          if (doc.error) {
+            errors.push({ row, error: doc.error });
+          } else {
+            rows.push(doc);
+          }
+        })
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    if (rows.length === 0) {
+      return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
+    }
+
+    const inserted = await Lead.insertMany(rows, { ordered: false });
+    req.logInfo = {
+      message:
+        "Leads imported successfully from the file:" + req.file.originalname,
+    };
+    clearCache('/api/leads');
+    res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
+  } catch (e) {
+    console.error('Import failed:', e);
+    req.logInfo = {
+      error: "Leads import failed from the file:" + req.file.originalname,
+    };
+    res.status(500).json({ error: 'Import failed' });
+  }
+};
 
 // export const importLeads = async (req, res) => {
 //   try {
@@ -404,107 +475,107 @@ export const uploadAttachment = async (req, res) => {
 //     res.status(500).json({ error: 'Import failed' });
 //   }
 // };
-export const importLeads = async (req, res) => {
-  try {
-    // ✅ Step 1: Validate file and source
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const source = req.body?.source?.toString().trim();
-    if (!source) return res.status(400).json({ error: 'Source is required' });
+// export const importLeads = async (req, res) => {
+//   try {
+//     // ✅ Step 1: Validate file and source
+//     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+//     const source = req.body?.source?.toString().trim();
+//     if (!source) return res.status(400).json({ error: 'Source is required' });
 
-    // ✅ Step 2: Ensure "New" status exists
-    let statusDoc = await Status.findOne({ name: 'New' });
-    if (!statusDoc) {
-      statusDoc = await Status.create({ name: 'New', color: '#10b981' });
-    }
+//     // ✅ Step 2: Ensure "New" status exists
+//     let statusDoc = await Status.findOne({ name: 'New' });
+//     if (!statusDoc) {
+//       statusDoc = await Status.create({ name: 'New', color: '#10b981' });
+//     }
 
-    // ✅ Step 3: Parse CSV rows
-    const rows = [];
-    const errors = [];
+//     // ✅ Step 3: Parse CSV rows
+//     const rows = [];
+//     const errors = [];
 
-    const toLeadDoc = (row) => {
-      const name = (row.name || row.Name || row.fullname || '').toString().trim();
-      const phone = (row.phone || row.Phone || row.mobile || '').toString().trim();
-      const email = (row.email || row.Email || '').toString().trim() || undefined;
-      const city = (row.city || row.City || '').toString().trim() || undefined;
+//     const toLeadDoc = (row) => {
+//       const name = (row.name || row.Name || row.fullname || '').toString().trim();
+//       const phone = (row.phone || row.Phone || row.mobile || '').toString().trim();
+//       const email = (row.email || row.Email || '').toString().trim() || undefined;
+//       const city = (row.city || row.City || '').toString().trim() || undefined;
 
-      if (!name) return { error: 'Missing name' };
-      if (!phone) return { error: 'Missing phone' };
+//       if (!name) return { error: 'Missing name' };
+//       if (!phone) return { error: 'Missing phone' };
 
-      const normalized = phone.replace(/[^0-9]/g, '');
-      if (normalized.length < 7 || normalized.length > 15)
-        return { error: 'Invalid phone number' };
+//       const normalized = phone.replace(/[^0-9]/g, '');
+//       if (normalized.length < 7 || normalized.length > 15)
+//         return { error: 'Invalid phone number' };
 
-      return {
-        name,
-        phone,
-        email,
-        city,
-        source,
-        status: statusDoc._id,
-        history: [{ status: statusDoc._id, by: req.user.userId, at: new Date() }]
-      };
-    };
+//       return {
+//         name,
+//         phone,
+//         email,
+//         city,
+//         source,
+//         status: statusDoc._id,
+//         history: [{ status: statusDoc._id, by: req.user.userId, at: new Date() }]
+//       };
+//     };
 
-    await new Promise((resolve, reject) => {
-      const stream = Readable.from(req.file.buffer);
-      stream
-        .pipe(csv())
-        .on('data', (row) => {
-          const doc = toLeadDoc(row);
-          if (doc.error) {
-            errors.push({ row, error: doc.error });
-          } else {
-            rows.push(doc);
-          }
-        })
-        .on('end', resolve)
-        .on('error', reject);
-    });
+//     await new Promise((resolve, reject) => {
+//       const stream = Readable.from(req.file.buffer);
+//       stream
+//         .pipe(csv())
+//         .on('data', (row) => {
+//           const doc = toLeadDoc(row);
+//           if (doc.error) {
+//             errors.push({ row, error: doc.error });
+//           } else {
+//             rows.push(doc);
+//           }
+//         })
+//         .on('end', resolve)
+//         .on('error', reject);
+//     });
 
-    if (rows.length === 0) {
-      return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
-    }
+//     if (rows.length === 0) {
+//       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
+//     }
 
-    // ✅ Step 4: Remove duplicates (existing leads)
-    const validRows = [];
-    for (const row of rows) {
-      let duplicate = await Lead.findOne({
-        $or: [{ phone: row.phone }, { email: row.email }]
-      });
-      if (duplicate) {
-        errors.push({ row, error: 'Lead already exists' });
-      } else {
-        validRows.push(row);
-      }
-    }
+//     // ✅ Step 4: Remove duplicates (existing leads)
+//     const validRows = [];
+//     for (const row of rows) {
+//       let duplicate = await Lead.findOne({
+//         $or: [{ phone: row.phone }, { email: row.email }]
+//       });
+//       if (duplicate) {
+//         errors.push({ row, error: 'Lead already exists' });
+//       } else {
+//         validRows.push(row);
+//       }
+//     }
 
-    if (validRows.length === 0) {
-      return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
-    }
+//     if (validRows.length === 0) {
+//       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
+//     }
 
-    // ✅ Step 5: Bulk insert valid leads
-    const inserted = await Lead.insertMany(validRows, { ordered: false });
+//     // ✅ Step 5: Bulk insert valid leads
+//     const inserted = await Lead.insertMany(validRows, { ordered: false });
 
-    // ✅ Optional logging and cache clearing
-    req.logInfo = {
-      message: `Leads imported successfully from file: ${req.file.originalname}`
-    };
-    clearCache('/api/leads');
+//     // ✅ Optional logging and cache clearing
+//     req.logInfo = {
+//       message: `Leads imported successfully from file: ${req.file.originalname}`
+//     };
+//     clearCache('/api/leads');
 
-    // ✅ Step 6: Return summary
-    return res.status(201).json({
-      inserted: inserted.length,
-      skipped: errors.length,
-      errors
-    });
-  } catch (e) {
-    console.error('Import failed:', e);
-    req.logInfo = {
-      error: `Leads import failed from file: ${req.file?.originalname || 'unknown'}`
-    };
-    return res.status(500).json({ error: 'Import failed' });
-  }
-};
+//     // ✅ Step 6: Return summary
+//     return res.status(201).json({
+//       inserted: inserted.length,
+//       skipped: errors.length,
+//       errors
+//     });
+//   } catch (e) {
+//     console.error('Import failed:', e);
+//     req.logInfo = {
+//       error: `Leads import failed from file: ${req.file?.originalname || 'unknown'}`
+//     };
+//     return res.status(500).json({ error: 'Import failed' });
+//   }
+// };
 
 export const bulkAssignLeads = async (req, res) => {
   console.log('bulk upload function ............', req.body);
