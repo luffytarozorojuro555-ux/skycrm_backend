@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authRequired, permit } from '../middleware/auth.js';
-import { listLeads, getLead, createLead, updateLead, changeStatus, addNote, createFollowUp, listFollowUps, uploadAttachment, importLeads,  bulkAssignLeads,addCommentToLead } from '../controllers/leadController.js';
+import { listLeads, getLead, createLead, updateLead, changeStatus, addNote, createFollowUp, listFollowUps, uploadAttachment, importLeads,  bulkAssignLeads,addCommentToLead ,deleteLead} from '../controllers/leadController.js';
 
 const router = Router();
 
@@ -26,15 +26,6 @@ const memoryUpload = multer({ storage: multer.memoryStorage() });
 router.post('/:id/attachments', authRequired, upload.single('file'), uploadAttachment);
 router.post('/import/csv', authRequired, permit('Admin','Sales Manager'), memoryUpload.single('file'), importLeads);
 router.post('/bulk-assign', authRequired, permit('Admin','Sales Manager'), bulkAssignLeads);
-router.delete('/:id', authRequired, permit('Admin','Sales Manager'), async (req, res) => {
-  try {
-    req.shouldLog = true;
-    const lead = await (await import('../models/Lead.js')).default.findByIdAndDelete(req.params.id);
-    if (!lead) return res.status(404).json({ error: 'Lead not found' });
-    res.json({ success: true, message:`Lead: ${lead.email} deleted successfully` });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to delete lead: '+lead.email });
-  }
-});
+router.delete('/:id', authRequired, permit('Admin','Sales Manager'), deleteLead);
 
 export default router;
