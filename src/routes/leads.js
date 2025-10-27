@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authRequired, permit } from '../middleware/auth.js';
-import { listLeads, getLead, createLead, updateLead, changeStatus, addNote, createFollowUp, listFollowUps, uploadAttachment, importLeads,  bulkAssignLeads } from '../controllers/leadController.js';
+import { listLeads, getLead, createLead, updateLead, changeStatus, addNote, createFollowUp, listFollowUps, uploadAttachment, importLeads,  bulkAssignLeads,addCommentToLead } from '../controllers/leadController.js';
 
 const router = Router();
 
@@ -15,7 +15,7 @@ router.post('/:id/status', authRequired, changeStatus);
 router.post('/:id/notes', authRequired, addNote);
 router.post('/:id/followups', authRequired, createFollowUp);
 router.get('/:id/followups', authRequired, listFollowUps);
-
+router.post('/:id/comments', authRequired, addCommentToLead);
 // uploads
 const storage = multer.diskStorage({
   destination: (req,file,cb) => cb(null, path.join(process.cwd(), 'backend', 'uploads')),
