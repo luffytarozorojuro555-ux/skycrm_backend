@@ -358,10 +358,9 @@ export const importLeads = async (req, res) => {
     if (rows.length === 0) {
       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
     }
-    // Check for duplicates before insertion
+    // ✅ Check for duplicates before insertion
     const validRows = [];
     for (const row of rows) {
-      // Check for duplicate by either phone or email
       let duplicate = null;
       if (row.phone) {
         duplicate = await Lead.findOne({ phone: row.phone });
@@ -380,18 +379,13 @@ export const importLeads = async (req, res) => {
       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
     }
 
-    const inserted = await Lead.insertMany(rows, { ordered: false });
-    req.logInfo = {
-      message:
-        "Leads imported successfully from the file:" + req.file.originalname,
-    };
+    const inserted = await Lead.insertMany(validRows);
+    req.logInfo = { message: "Leads imported successfully from " + req.file.originalname };
     clearCache('/api/leads');
     res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
   } catch (e) {
     console.error('Import failed:', e);
-    req.logInfo = {
-      error: "Leads import failed from the file:" + req.file.originalname,
-    };
+    req.logInfo = { error: "Leads import failed from " + req.file.originalname };
     res.status(500).json({ error: 'Import failed' });
   }
 };
