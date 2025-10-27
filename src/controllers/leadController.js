@@ -7,6 +7,7 @@ import Attachment from '../models/Attachment.js';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
 import { clearRedisCache as clearCache } from '../middleware/redisCache.js';
+import { populate } from 'dotenv';
 
 const canSeeLead = (req, lead) => {
   const role = req.user.roleName;
@@ -118,6 +119,12 @@ export const getLead = async (req, res) => {
       populate:[
         {path:'status', select:'name'},
         {path:'by', select:'name email'},
+      ]
+    })
+    .populate({
+      path:'comments',
+      populate:[
+         {path:'by',select:'name'}
       ]
     })
   if (!lead) return res.status(404).json({ error: 'Lead not found' });
@@ -297,19 +304,123 @@ export const uploadAttachment = async (req, res) => {
   });
 };
 
+// export const importLeads = async (req, res) => {
+//   try {
+//     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+//     const source = req.body?.source?.toString().trim();
+//     if (!source) return res.status(400).json({ error: 'Source is required' });
+
+//     let statusDoc = await Status.findOne({ name: 'New' });
+//     if (!statusDoc) {
+//       statusDoc = await Status.create({ name: 'New', color: '#10b981' });
+//     }
+
+//     const rows = [];
+//     const errors = [];
+//     const toLeadDoc = (row) => {
+//       const name = (row.name || row.Name || row.fullname || '').toString().trim();
+//       const phone = (row.phone || row.Phone || row.mobile || '').toString().trim();
+//       const email = (row.email || row.Email || '').toString().trim() || undefined;
+//       const city = (row.city || row.City || '').toString().trim() || undefined;
+
+//       if (!name) return { error: 'Missing name' };
+//       if (!phone) return { error: 'Missing phone' };
+//       // basic phone validation: 7-15 digits allowing +, space, -
+//       const normalized = phone.replace(/[^0-9]/g, '');
+//       if (normalized.length < 7 || normalized.length > 15) return { error: 'Invalid phone' };
+
+//       return {
+//         name,
+//         phone,
+//         email,
+//         city,
+//         source,
+//         status: statusDoc._id,
+//         history: [{ status: statusDoc._id, by: req.user.userId, at: new Date() }]
+//       };
+//     };
+
+//     await new Promise((resolve, reject) => {
+//       const stream = Readable.from(req.file.buffer);
+//       stream
+//         .pipe(csv())
+//         .on('data', (row) => {
+//           const doc = toLeadDoc(row);
+//           if (doc.error) {
+//             errors.push({ row, error: doc.error });
+//           } else {
+//             rows.push(doc);
+//           }
+//         })
+//         .on('end', resolve)
+//         .on('error', reject);
+//     });
+
+//     if (rows.length === 0) {
+//       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
+//     }
+
+//     // Check for duplicates before insertion
+//     const validRows = [];
+//     for (const row of rows) {
+//       // Check for duplicate by either phone or email
+//       let duplicate = null;
+//       if (row.phone) {
+//         duplicate = await Lead.findOne({ phone: row.phone });
+//       }
+//       if (!duplicate && row.email) {
+//         duplicate = await Lead.findOne({ email: row.email });
+//       }
+//       if (duplicate) {
+//         errors.push({ row, error: 'Lead already existed' });
+//         continue;
+//       }
+//       validRows.push(row);
+//     }
+
+//     if (validRows.length === 0) {
+//       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
+//     }
+
+//     const inserted = await Lead.insertMany(validRows);
+//     res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
+//   } catch (e) {
+//     console.error('Import failed:', e);
+//     res.status(500).json({ error: 'Import failed' });
+//   }
+
+//     const inserted = await Lead.insertMany(rows, { ordered: false });
+//     req.logInfo = {
+//       message:
+//         "Leads imported successfully from the file:" + req.file.originalname,
+//     };
+//     clearCache('/api/leads');
+//     res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
+//   } catch (e) {
+//     console.error('Import failed:', e);
+//     req.logInfo = {
+//       error: "Leads import failed from the file:" + req.file.originalname,
+//     };
+//     res.status(500).json({ error: 'Import failed' });
+//   }
+// };
 export const importLeads = async (req, res) => {
   try {
+    // ✅ Step 1: Validate file and source
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const source = req.body?.source?.toString().trim();
     if (!source) return res.status(400).json({ error: 'Source is required' });
 
+    // ✅ Step 2: Ensure "New" status exists
     let statusDoc = await Status.findOne({ name: 'New' });
     if (!statusDoc) {
       statusDoc = await Status.create({ name: 'New', color: '#10b981' });
     }
 
+    // ✅ Step 3: Parse CSV rows
     const rows = [];
     const errors = [];
+
     const toLeadDoc = (row) => {
       const name = (row.name || row.Name || row.fullname || '').toString().trim();
       const phone = (row.phone || row.Phone || row.mobile || '').toString().trim();
@@ -318,9 +429,10 @@ export const importLeads = async (req, res) => {
 
       if (!name) return { error: 'Missing name' };
       if (!phone) return { error: 'Missing phone' };
-      // basic phone validation: 7-15 digits allowing +, space, -
+
       const normalized = phone.replace(/[^0-9]/g, '');
-      if (normalized.length < 7 || normalized.length > 15) return { error: 'Invalid phone' };
+      if (normalized.length < 7 || normalized.length > 15)
+        return { error: 'Invalid phone number' };
 
       return {
         name,
@@ -353,48 +465,44 @@ export const importLeads = async (req, res) => {
       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
     }
 
-    // Check for duplicates before insertion
+    // ✅ Step 4: Remove duplicates (existing leads)
     const validRows = [];
     for (const row of rows) {
-      // Check for duplicate by either phone or email
-      let duplicate = null;
-      if (row.phone) {
-        duplicate = await Lead.findOne({ phone: row.phone });
-      }
-      if (!duplicate && row.email) {
-        duplicate = await Lead.findOne({ email: row.email });
-      }
+      let duplicate = await Lead.findOne({
+        $or: [{ phone: row.phone }, { email: row.email }]
+      });
       if (duplicate) {
-        errors.push({ row, error: 'Lead already existed' });
-        continue;
+        errors.push({ row, error: 'Lead already exists' });
+      } else {
+        validRows.push(row);
       }
-      validRows.push(row);
     }
 
     if (validRows.length === 0) {
       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
     }
 
-    const inserted = await Lead.insertMany(validRows);
-    res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
-  } catch (e) {
-    console.error('Import failed:', e);
-    res.status(500).json({ error: 'Import failed' });
-  }
+    // ✅ Step 5: Bulk insert valid leads
+    const inserted = await Lead.insertMany(validRows, { ordered: false });
 
-    const inserted = await Lead.insertMany(rows, { ordered: false });
+    // ✅ Optional logging and cache clearing
     req.logInfo = {
-      message:
-        "Leads imported successfully from the file:" + req.file.originalname,
+      message: `Leads imported successfully from file: ${req.file.originalname}`
     };
     clearCache('/api/leads');
-    res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
+
+    // ✅ Step 6: Return summary
+    return res.status(201).json({
+      inserted: inserted.length,
+      skipped: errors.length,
+      errors
+    });
   } catch (e) {
     console.error('Import failed:', e);
     req.logInfo = {
-      error: "Leads import failed from the file:" + req.file.originalname,
+      error: `Leads import failed from file: ${req.file?.originalname || 'unknown'}`
     };
-    res.status(500).json({ error: 'Import failed' });
+    return res.status(500).json({ error: 'Import failed' });
   }
 };
 
@@ -509,5 +617,51 @@ export const bulkAssignLeads = async (req, res) => {
     console.error('Bulk assignment failed:', error);
     req.logInfo = { error: "Failed to assign leads" };
     res.status(500).json({ error: 'Failed to assign leads' });
+  }
+};
+
+export const addCommentToLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    // // 1️⃣ Validate ID
+    // if (!mongoose.Types.ObjectId.isValid(id)) {
+    //   return res.status(400).json({ error: "Invalid lead ID" });
+    // }
+
+    // 2️⃣ Validate comment text
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ error: "Comment text is required" });
+    }
+
+    // 3️⃣ Find lead
+    const lead = await Lead.findById(id);
+    if (!lead) return res.status(404).json({ error: "Lead not found" });
+
+    // 5️⃣ Ensure req.user exists (for testing fallback)
+    const userId = req.user?.userId || null; // or use a fallback test user if needed
+    console.log("Adding comment by userId:", userId);
+    // 6️⃣ Push comment into comments array
+    lead.comments.push({
+      text: text.trim(),
+      by: userId,
+      at: new Date(),
+    });
+
+    // 7️⃣ Save updated lead
+    await lead.save();
+
+    // 8️⃣ Repopulate for frontend
+    const updatedLead = await Lead.findById(id)
+      .populate("comments.by", "name email")
+      .select("comments");
+    clearCache(`/api/leads/${lead._id}`);
+    return res.status(201).json({
+      message: "Comment added successfully",
+      comments: updatedLead.comments,
+    });
+  } catch (err) {
+    console.error("❌ Error adding comment:", err);
+    return res.status(500).json({ error: err.message || "Server error" });
   }
 };
