@@ -380,10 +380,6 @@ export const importLeads = async (req, res) => {
       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
     }
 
-    const inserted = await Lead.insertMany(validRows);
-    res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
-  } 
-}
     const inserted = await Lead.insertMany(rows, { ordered: false });
     req.logInfo = {
       message:
