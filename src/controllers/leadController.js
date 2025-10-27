@@ -382,11 +382,7 @@ export const importLeads = async (req, res) => {
 
     const inserted = await Lead.insertMany(validRows);
     res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
-  } catch (e) {
-    console.error('Import failed:', e);
-    res.status(500).json({ error: 'Import failed' });
-  }
-
+  } 
     const inserted = await Lead.insertMany(rows, { ordered: false });
     req.logInfo = {
       message:
