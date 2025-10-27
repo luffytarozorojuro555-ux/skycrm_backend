@@ -706,6 +706,38 @@ export const bulkAssignLeads = async (req, res) => {
   }
 };
 
+export const deleteLead = async (req, res) => {
+  let lead=null;
+  try {
+    req.shouldLog = true;
+    // 🔍 Find and delete lead
+    lead = await Lead.findByIdAndDelete(req.params.id);
+
+    if (!lead) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+
+    console.log("🗑️ Deleted lead:", lead);
+
+    // 🧹 Clear related caches
+    clearCache("/api/leads");
+    clearCache(`/api/leads/${lead._id}`);
+    clearCache("/api/team/my-team");
+    clearCache("/api/leads?assignedTo=me");
+
+    // ✅ Send success response
+    res.status(200).json({
+      success: true,
+      message: `Lead ${lead.email || lead.name} deleted successfully`,
+    });
+  } catch (e) {
+    console.error("❌ Error deleting lead:", e);
+    res.status(500).json({
+      error: `Failed to delete lead${lead?.email ? ": " + lead.email : ""}`,
+    });
+  }
+};
+
 export const addCommentToLead = async (req, res) => {
   try {
     const { id } = req.params;
@@ -751,3 +783,5 @@ export const addCommentToLead = async (req, res) => {
     return res.status(500).json({ error: err.message || "Server error" });
   }
 };
+
+
