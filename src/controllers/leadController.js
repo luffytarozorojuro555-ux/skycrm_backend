@@ -358,6 +358,34 @@ export const importLeads = async (req, res) => {
     if (rows.length === 0) {
       return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
     }
+    // Check for duplicates before insertion
+    const validRows = [];
+    for (const row of rows) {
+      // Check for duplicate by either phone or email
+      let duplicate = null;
+      if (row.phone) {
+        duplicate = await Lead.findOne({ phone: row.phone });
+      }
+      if (!duplicate && row.email) {
+        duplicate = await Lead.findOne({ email: row.email });
+      }
+      if (duplicate) {
+        errors.push({ row, error: 'Lead already existed' });
+        continue;
+      }
+      validRows.push(row);
+    }
+
+    if (validRows.length === 0) {
+      return res.status(200).json({ inserted: 0, skipped: errors.length, errors });
+    }
+
+    const inserted = await Lead.insertMany(validRows);
+    res.status(201).json({ inserted: inserted.length, skipped: errors.length, errors });
+  } catch (e) {
+    console.error('Import failed:', e);
+    res.status(500).json({ error: 'Import failed' });
+  }
 
     const inserted = await Lead.insertMany(rows, { ordered: false });
     req.logInfo = {
