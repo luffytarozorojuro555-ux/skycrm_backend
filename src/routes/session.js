@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Set pending logout (called on tab unload)
 router.post('/pending-logout', authMiddleware, async (req, res) => {
-  const userId = req.user?.id || req.session?.userId;
+  const userId = req.user?.id || req.session?.userId||req.user.userId;
   if (!userId) return res.status(400).json({ error: 'No user.' });
   const redisClient = await connectRedis();
   await redisClient.set(`pending_logout:${userId}`, '1', { EX: 10 }); // 10s expiry
@@ -14,7 +14,7 @@ router.post('/pending-logout', authMiddleware, async (req, res) => {
 
 // Cancel pending logout (called on reconnect/API call)
 router.post('/cancel-pending-logout', authMiddleware, async (req, res) => {
-  const userId = req.user?.id || req.session?.userId;
+  const userId = req.user?.id || req.session?.userId||req.user.userId;
   if (!userId) return res.status(400).json({ error: 'No user.' });
   const redisClient = await connectRedis();
   await redisClient.del(`pending_logout:${userId}`);
@@ -22,3 +22,4 @@ router.post('/cancel-pending-logout', authMiddleware, async (req, res) => {
 });
 
 export default router;
+
