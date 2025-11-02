@@ -45,6 +45,10 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    if(user.status==="inactive"){
+      return res.status(403).json({error: "User account is inactive. Please contact administrator."});
+    }
+
     const token = signToken(user);
     // ✅ Redis session
     const redisClient = getRedisClient();
@@ -224,6 +228,9 @@ export const register = async (req, res) => {
     return res
       .status(400)
       .json({ error: "Email " + email + " already registered" });
+  const phoneExists = await User.findOne({phone});
+  if(phoneExists)
+    return res.status(400).json({error: "Phone number "+phone+" already registered"});
   const tempPassword = generateRandomPassword() || process.env.DEFAULTPASSWORD;
   const passwordHash = await bcrypt.hash(tempPassword, 10);
   try {
@@ -268,6 +275,14 @@ export const resetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    const passwordRegex =
+      /^(?=(?:.*[A-Z]){2,})(?=(?:.*[a-z]){3,})(?=(?:.*\d){2,})(?=(?:.*[!@#$&*]){1,})[A-Za-z\d!@#$&*]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        error:
+          "Password must be at least 8 characters, contain 2 uppercase letters, 3 lowercase letters, 2 numbers, and 1 special character (!@#$&*) and no spaces",
+      });
+    }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.passwordHash = hashedPassword;
     user.defaultPasswordChanged = true;
@@ -277,11 +292,16 @@ export const resetPassword = async (req, res) => {
       .json({ message: "Password of user " + email + " updated successfully" });
   } catch (error) {
     res.status(500).json({
-      message: "Error in updating user " + email + " password",
+      message:
+        "Error in updating user " +
+        email +
+        " password. Error: " +
+        error.message,
       error: error.message,
     });
   }
 };
+
 export const changePassword = async (req, res) => {
   const userId = req.user?.userId;
   let { currentPassword, newPassword } = req.body;
@@ -352,7 +372,7 @@ export const sendRecoveryEmail = async (req, res) => {
     // Find user to get their name
     const user = await User.findOne({ email: recipient_email }); //O(log n)
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found. Enter valid user email" });
     }
 
     await sendEmail(recipient_email, "forgotPassword", {

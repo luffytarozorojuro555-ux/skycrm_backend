@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Role from "../models/Role.js";
 import Team from "../models/Team.js";
+import validateFields from "../utils/validateFields.js";
 import { getTeams } from "./teamController.js";
 
 // export const listUsers = async (req, res) => {
@@ -247,6 +248,7 @@ export const updateUserDetails = async (req, res) => {
     email = email?.trim().toLowerCase();
     status = status?.trim();
     phone = phone?.trim();
+    console.log("Email "+email)
 
     const errorMessage = validateFields({ name, email, phone });
     if (errorMessage != "") {
@@ -274,7 +276,8 @@ export const updateUserDetails = async (req, res) => {
 
     req.logInfo = {
       message: `User updated. Details : ${updatedUser.name}, ${updatedUser.email}, ${updatedUser.status}, ${updatedUser?.phone}`,
-      target: email,
+      target: updatedUser.email,
+      user: req.user?.email
     };
 
     res.json({

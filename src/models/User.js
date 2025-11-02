@@ -18,8 +18,8 @@ const UserSchema = new mongoose.Schema(
     },
     defaultPasswordChanged: { type: Boolean, default: false },
     phone: { type: String },
-    lastLogin: { type: Date },
-    lastLogout: { type: Date },
+    lastLogin: { type: Date, default:null },
+    lastLogout: { type: Date, default:null },
   },
   { timestamps: true }
 );
