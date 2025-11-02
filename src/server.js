@@ -22,7 +22,10 @@ import { initSocket } from './serverSocket.js';
 import { loggerMiddleware } from './middleware/loggerMiddleware.js';
 import { redisCacheMiddleware } from './middleware/redisCache.js';
 import { connectRedis } from './config/redis.js';
+<<<<<<< HEAD
 import { ipKeyGenerator } from "express-rate-limit";
+=======
+>>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 import { createRateLimiter } from './utils/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -70,8 +73,11 @@ const createApp = () => {
     allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
   }));
 
+<<<<<<< HEAD
   app.options('*', cors());
 
+=======
+>>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
   // Logging
   app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 

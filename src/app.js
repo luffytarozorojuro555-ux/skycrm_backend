@@ -6,8 +6,12 @@ import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
+<<<<<<< HEAD
 import dotenv from "dotenv";
 dotenv.config();
+=======
+
+>>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 import authRoutes from './routes/auth.js';
 import roleRoutes from './routes/roles.js';
 import statusRoutes from './routes/statuses.js';
