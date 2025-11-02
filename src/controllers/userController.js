@@ -80,11 +80,7 @@ export const getUsersByRole = async (req, res) => {
       return res.status(400).json({ error: "roleId is required" });
     }
 
-<<<<<<< HEAD
     const users = await User.find({ role: roleId }).populate("role", "name"); //O(log n)
-=======
-    const users = await User.find({ role: roleId }).populate("role", "name");      //O(log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     if (!users || users.length === 0) {
       return res.status(404).json({ error: "Users with given role not found" });
     }
@@ -252,7 +248,6 @@ export const updateUserDetails = async (req, res) => {
     status = status?.trim();
     phone = phone?.trim();
 
-<<<<<<< HEAD
     const errorMessage = validateFields({ name, email, phone });
     if (errorMessage != "") {
       return res.status(400).json({ error: errorMessage });
@@ -260,9 +255,6 @@ export const updateUserDetails = async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       //O(log n)
-=======
-    const updatedUser = await User.findByIdAndUpdate(               //O(log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
       user._id,
       { name, email, status, phone },
       { new: true }
@@ -273,16 +265,12 @@ export const updateUserDetails = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-<<<<<<< HEAD
     const teams = await checkUserRoleAndUpdateDetails(
       user,
       roleName,
       status,
       req
     );
-=======
-    const teams = await checkUserRoleAndUpdateDetails(user, roleName, status, req);
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 
     req.logInfo = {
       message: `User updated. Details : ${updatedUser.name}, ${updatedUser.email}, ${updatedUser.status}, ${updatedUser?.phone}`,
@@ -321,13 +309,8 @@ const checkUserRoleAndUpdateDetails = async (user, roleName, status, req) => {
   }
   const teams = await getTeams(teamFilter);
   if (roleName === "Sales Manager" && status === "inactive") {
-<<<<<<< HEAD
     const roleId = await Role.findOne({ name: "Admin" }); //O(1)
     const adminUser = await User.findOne({ role: roleId }).populate("role"); //O(log n)
-=======
-    const roleId = await Role.findOne({name:"Admin"});          //O(1)
-    const adminUser = await User.findOne({role: roleId}).populate('role');     //O(log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 
     if (!adminUser) {
       req.logInfo = {
@@ -338,12 +321,8 @@ const checkUserRoleAndUpdateDetails = async (user, roleName, status, req) => {
       return;
     }
     for (const team of teams) {
-<<<<<<< HEAD
       await Team.findByIdAndUpdate(
         // O(log n)
-=======
-      await Team.findByIdAndUpdate(       // O(log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
         team._id,
         { manager: adminUser._id },
         { new: true }
@@ -373,15 +352,11 @@ const checkUserRoleAndUpdateDetails = async (user, roleName, status, req) => {
       };
     } catch (err) {
       req.logInfo = {
-<<<<<<< HEAD
         error:
           "User: " +
           user.email +
           " removal from team is unsuccessful. Error: " +
           err,
-=======
-        error: "User: "+user.email + " removal from team is unsuccessful. Error: "+err,
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
         target: user.email,
       };
       console.log("User removal from team is unsuccessful");
@@ -391,11 +366,7 @@ const checkUserRoleAndUpdateDetails = async (user, roleName, status, req) => {
   if (roleName === "Sales Representatives" && status === "inactive") {
     try {
       for (const team of teams) {
-<<<<<<< HEAD
         await Team.findByIdAndUpdate(
-=======
-        await Team.findByIdAndUpdate(                
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
           team._id,
           { $pull: { members: user?._id } },
           { new: true }
@@ -406,15 +377,11 @@ const checkUserRoleAndUpdateDetails = async (user, roleName, status, req) => {
       };
     } catch (err) {
       req.logInfo = {
-<<<<<<< HEAD
         error:
           "User: " +
           user.email +
           " removal from team is unsuccessful. Error: " +
           err,
-=======
-        error: "User: "+user.email + " removal from team is unsuccessful. Error: "+err,
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
         target: user.email,
       };
     }
@@ -430,11 +397,7 @@ export const deleteUser = async (req, res) => {
       return res.status(400).json({ error: "User ID is required" });
     }
     await checkUserRoleAndUpdateDetails(user, user.roleName, user.status, req);
-<<<<<<< HEAD
     const deletedUser = await User.findByIdAndDelete(user._id); //O(log n)
-=======
-    const deletedUser = await User.findByIdAndDelete(user._id);   //O(log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     if (!deletedUser) {
       req.logInfo = {
         error: "User deletion unsuccessful: User not found",

@@ -195,7 +195,6 @@ export const createTeam = async (req, res) => {
       message: "Team: " + name + " created successfully",
     });
   } catch (err) {
-<<<<<<< HEAD
     if(err.code === 11000){
       return res.status(400).json({
         error:`Team with name: ${name} already exists. Please choose a different name`
@@ -203,10 +202,6 @@ export const createTeam = async (req, res) => {
     }
     res.status(500).json({
       error: "Team: " + name + " creation failed. Error: "+err.message, 
-=======
-    res.status(500).json({
-      error: "Team: " + name + " creation failed",
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     });
   }
 };

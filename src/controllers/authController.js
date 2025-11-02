@@ -9,10 +9,7 @@ import { sendEmail } from "../MailTransporter.js";
 import Team from "../models/Team.js";
 import { getTeams } from "./teamController.js";
 import { getRedisClient } from "../config/redis.js";
-<<<<<<< HEAD
 import validateFields from "../utils/validateFields.js";
-=======
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 
 const signToken = (user) => {
   return jwt.sign(
@@ -30,22 +27,13 @@ const signToken = (user) => {
 
 export const login = async (req, res) => {
   try {
-<<<<<<< HEAD
     const { email, password, selectedRole } = req.body;
     console.log("selecteedrole==============", selectedRole);
-=======
-    const { email, password,selectedRole} = req.body;
-    console.log("selecteedrole==============",selectedRole);
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-<<<<<<< HEAD
     const user = await User.findOne({ email }).populate("role"); //O(log n)
-=======
-    const user = await User.findOne({ email }).populate("role");    //O(log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -56,7 +44,6 @@ export const login = async (req, res) => {
     if (!ok) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-<<<<<<< HEAD
 
     const token = signToken(user);
     // ✅ Redis session
@@ -67,18 +54,6 @@ export const login = async (req, res) => {
       12 * 60 * 60, // 12 hours same as JWT expiry
       JSON.stringify({ token, roleName: user.role.name, email: user.email })
     );
-=======
-   
-    const token = signToken(user);
-    // ✅ Redis session
-  const redisClient = getRedisClient();
-  const sessionKey = `crm_sess:${user._id}`;
-  await redisClient.setEx(
-    sessionKey,
-    12 * 60 * 60, // 12 hours same as JWT expiry
-    JSON.stringify({ token, roleName: user.role.name, email: user.email })
-  );
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 
     const io = getIO();
 
@@ -110,11 +85,7 @@ export const login = async (req, res) => {
       message: "Login of user:" + user.email + " Successful",
     });
   } catch (error) {
-<<<<<<< HEAD
     console.error("Login error:", error);
-=======
-    console.error('Login error:', error);
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     req.logInfo = { error: "Login failed: Error occured is - " + error };
     return res
       .status(500)
@@ -124,7 +95,6 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-<<<<<<< HEAD
     req.shouldLog = true;
     const userId = req.user.userId;
     const email = req.user.email;
@@ -138,21 +108,6 @@ export const logout = async (req, res) => {
       await redisClient.del(ipKey);
     }
     const io = getIO();
-=======
-  req.shouldLog = true;
-  const userId = req.user.userId;
-  const email = req.user.email;
-  const redisClient = getRedisClient();
-  const sessionKey = `crm_sess:${userId}`;
-  await redisClient.del(sessionKey);
-  if (email) {
-    await redisClient.del(`rl:login:${email}`);
-  } else {
-    const ipKey = `rl:login:${req.ip}`;
-    await redisClient.del(ipKey);
-  }
-  const io = getIO();
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 
     await User.findByIdAndUpdate(
       userId,
@@ -176,7 +131,6 @@ export const logoutBeacon = async (req, res) => {
   try {
     // beacon may send token in body
     const token = req.body?.token;
-<<<<<<< HEAD
     if (!token) return res.status(400).json({ error: "Missing token" });
     // verify token
     let payload;
@@ -184,15 +138,6 @@ export const logoutBeacon = async (req, res) => {
       payload = jwt.verify(token, process.env.JWT_SECRET || "change_me");
     } catch (e) {
       return res.status(401).json({ error: "Invalid token" });
-=======
-    if (!token) return res.status(400).json({ error: 'Missing token' });
-    // verify token
-    let payload;
-    try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'change_me');
-    } catch (e) {
-      return res.status(401).json({ error: 'Invalid token' });
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     }
     const userId = payload.userId;
     const email = payload.email;
@@ -209,7 +154,6 @@ export const logoutBeacon = async (req, res) => {
       await redisClient.expire(ipKey, GRACE_SECONDS);
     }
     const io = getIO();
-<<<<<<< HEAD
     await User.findByIdAndUpdate(
       userId,
       { lastLogout: new Date() },
@@ -221,15 +165,6 @@ export const logoutBeacon = async (req, res) => {
   } catch (err) {
     console.error("Beacon logout failed", err);
     return res.status(500).json({ error: "Beacon logout failed" });
-=======
-    await User.findByIdAndUpdate(userId, { lastLogout: new Date() }, { new: true });
-    io.emit('userStatusChange', { _id: userId, lastLogout: new Date() });
-    // send minimal response
-    return res.json({ message: 'Beacon logout processed' });
-  } catch (err) {
-    console.error('Beacon logout failed', err);
-    return res.status(500).json({ error: 'Beacon logout failed' });
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
   }
 };
 
@@ -237,31 +172,18 @@ export const logoutBeacon = async (req, res) => {
 export const heartbeat = async (req, res) => {
   try {
     const userId = req.user?.userId;
-<<<<<<< HEAD
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
     const redisClient = getRedisClient();
     const sessionKey = `crm_sess:${userId}`;
     const sessionData = await redisClient.get(sessionKey);
     if (!sessionData)
       return res.status(401).json({ error: "Session not found" });
-=======
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    const redisClient = getRedisClient();
-    const sessionKey = `crm_sess:${userId}`;
-    const sessionData = await redisClient.get(sessionKey);
-    if (!sessionData) return res.status(401).json({ error: 'Session not found' });
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     // Refresh TTL to match JWT expiry (12 hours)
     await redisClient.expire(sessionKey, 12 * 60 * 60);
     return res.json({ ok: true });
   } catch (err) {
-<<<<<<< HEAD
     console.error("Heartbeat failed", err);
     return res.status(500).json({ error: "Heartbeat failed" });
-=======
-    console.error('Heartbeat failed', err);
-    return res.status(500).json({ error: 'Heartbeat failed' });
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
   }
 };
 
@@ -269,7 +191,6 @@ export const heartbeat = async (req, res) => {
 export const validateSession = async (req, res) => {
   try {
     const userId = req.user?.userId;
-<<<<<<< HEAD
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const redisClient = getRedisClient();
@@ -284,22 +205,6 @@ export const validateSession = async (req, res) => {
   } catch (err) {
     console.error("Session validation failed:", err);
     return res.status(500).json({ error: "Session validation failed" });
-=======
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    
-    const redisClient = getRedisClient();
-    const sessionKey = `crm_sess:${userId}`;
-    const sessionData = await redisClient.get(sessionKey);
-    
-    if (!sessionData) {
-      return res.status(401).json({ error: 'Session expired or invalid' });
-    }
-    
-    return res.json({ valid: true });
-  } catch (err) {
-    console.error('Session validation failed:', err);
-    return res.status(500).json({ error: 'Session validation failed' });
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
   }
 };
 
@@ -307,22 +212,9 @@ export const register = async (req, res) => {
   const { name, email, roleName } = req.body;
   let { phone } = req.body;
   phone = phone?.trim();
-<<<<<<< HEAD
   const errorMessage = validateFields({ name, email, phone });
   if (errorMessage != "") {
     return res.status(400).json({ error: errorMessage });
-=======
-  if (!/^[a-zA-Z\s]+$/.test(name)) {
-    return res.status(400).json({error:"Name should contain only alphabets"})
-  }
-
-  if (!/^\d{1,10}$/.test(phone)) {
-    return res.status(400).json({error:"Number must be 1-10 digits only"});
-  }
-
-  if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|in|net|org|co)$/.test(email)) {
-    return res.status(400).json({error:"Invalid email format"});
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
   }
 
   const role = await Role.findOne({ name: roleName }); //O(1)
@@ -334,11 +226,7 @@ export const register = async (req, res) => {
       .json({ error: "Email " + email + " already registered" });
   const tempPassword = generateRandomPassword() || process.env.DEFAULTPASSWORD;
   const passwordHash = await bcrypt.hash(tempPassword, 10);
-<<<<<<< HEAD
   try {
-=======
-    try {
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     const maxRetries = 3;
     for (let i = 0; i < maxRetries; i++) {
       await sendEmail(email, "registration", { name, tempPassword });
@@ -399,11 +287,7 @@ export const changePassword = async (req, res) => {
   let { currentPassword, newPassword } = req.body;
   currentPassword = currentPassword.trim();
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-<<<<<<< HEAD
   const user = await User.findById(userId); //O(Log n)
-=======
-  const user = await User.findById(userId);                    //O(Log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
   if (!user) return res.status(404).json({ error: "User not found" });
   const ok = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!ok)
@@ -466,16 +350,11 @@ export const sendRecoveryEmail = async (req, res) => {
 
   try {
     // Find user to get their name
-<<<<<<< HEAD
     const user = await User.findOne({ email: recipient_email }); //O(log n)
-=======
-    const user = await User.findOne({ email: recipient_email });       //O(log n)
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-<<<<<<< HEAD
     await sendEmail(recipient_email, "forgotPassword", {
       name: user.name,
       resetToken: OTP,
@@ -487,18 +366,6 @@ export const sendRecoveryEmail = async (req, res) => {
     });
   } catch (err) {
     console.error("Failed to send recovery email: ", err);
-=======
-    await sendEmail(recipient_email, 'forgotPassword', {
-      name: user.name,
-      resetToken: OTP,
-      resetUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
-    });
-
-    res.json({ message: "OTP sent to "+recipient_email+" for account recovery" });
-  } catch (err) {
-    
-    console.error('Failed to send recovery email: ', err);
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
     res.status(500).json({
       error: `Failed to send recovery email to ${recipient_email}. Error occured: ${err.message}`,
     });
@@ -564,13 +431,6 @@ export const listUsers = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> 333ee9a41294962eab6c17153fde472d38aeec25
 export const refreshSession = async (req, res) => {
   const userId = req.user.userId;
   const newToken = signToken({ userId });
