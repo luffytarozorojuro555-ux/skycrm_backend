@@ -6,18 +6,16 @@ const LeadSchema = new mongoose.Schema({
   city: { type: String },
   source: { type: String },
   college: { type: String },               
-  yearOfPassout: { type: Date },   
-
+  yearOfPassout: { type: Date },  
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
   status: { type: mongoose.Schema.Types.ObjectId, ref: 'Status', required: true },
-
   history: [{
     status: { type: mongoose.Schema.Types.ObjectId, ref: 'Status' },
     by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     at: { type: Date, default: Date.now }
   }],
-
   comments: [
     {
       text: { type: String, required: true },
