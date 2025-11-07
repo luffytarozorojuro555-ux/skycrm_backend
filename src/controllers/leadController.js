@@ -87,11 +87,10 @@ export const listLeads = async (req, res) => {
         .populate("assignedTo", "name email")
         .populate("teamId", "name lead");
       // No filtering: all roles see all leads
-      res.json(leads);
+      res.json({leads,curUser:req.user?.userId});
     } else {
       const skip = (parseInt(page) - 1) * parseInt(limit);
       const totalLeads = await Lead.countDocuments(filter);
-
       const leads = await Lead.find(filter)
         .populate("status")
         .populate("assignedTo", "name email")
@@ -101,6 +100,7 @@ export const listLeads = async (req, res) => {
 
       res.json({
         leads,
+        curUser:req.user.userId,
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(totalLeads / limit),
@@ -189,6 +189,7 @@ export const createLead = async (req, res) => {
     assignedTo: assignedTo || undefined,
     teamId: teamId || undefined,
     status: status._id,
+    uploadedBy: req.user.userId,
     history: [{ status: status._id, by: req.user.userId, at: new Date() }],
     ...(createdBy && { createdBy }),
   });
@@ -392,6 +393,7 @@ export const importLeads = async (req, res) => {
         city,
         source,
         status: statusDoc._id,
+        uploadedBy: req.user.userId,
         history: [
           { status: statusDoc._id, by: req.user.userId, at: new Date() },
         ],
