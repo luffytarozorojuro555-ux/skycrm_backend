@@ -172,7 +172,7 @@ import Team from "../models/Team.js";
 import User from "../models/User.js";
 import Role from "../models/Role.js";
 import Lead from "../models/Lead.js";
-import { clearRedisCache as clearCache } from '../middleware/redisCache.js';
+import { clearRedisCache as clearCache } from "../middleware/redisCache.js";
 export const createTeam = async (req, res) => {
   req.shouldLog = true;
   const { name, leadId, memberIds } = req.body;
@@ -189,19 +189,19 @@ export const createTeam = async (req, res) => {
       .populate("lead", "name email")
       .populate("manager", "name email")
       .populate("members", "name email");
-      clearCache('/api/team');
+    clearCache("/api/team");
     res.status(201).json({
       populatedTeam,
       message: "Team: " + name + " created successfully",
     });
   } catch (err) {
-    if(err.code === 11000){
+    if (err.code === 11000) {
       return res.status(400).json({
-        error:`Team with name: ${name} already exists. Please choose a different name`
-      })
+        error: `Team with name: ${name} already exists. Please choose a different name`,
+      });
     }
     res.status(500).json({
-      error: "Team: " + name + " creation failed. Error: "+err.message, 
+      error: "Team: " + name + " creation failed. Error: " + err.message,
     });
   }
 };
@@ -227,15 +227,19 @@ export const createTeam = async (req, res) => {
 export const getTeams = async (filter) => {
   return Team.find(filter)
     .populate("lead", "name email")
-    .populate("manager", "name email")
+    .populate({
+      path: "manager",
+      select: "name email role",
+      populate: { path: "role", select: "name" },
+    })
     .populate("members", "name email")
     .populate({
       path: "leadsAssigned",
-      select:"_id status",
+      select: "_id status",
       populate: {
         path: "status",
-        select: "name order" // assuming your Status model has name and color fields
-      }
+        select: "name order", // assuming your Status model has name and color fields
+      },
     });
 };
 
@@ -253,15 +257,17 @@ export const getTeams = async (filter) => {
 
 export const listTeams = async (req, res) => {
   try {
-    console.log('listTeams called - Request user:', { 
+    console.log("listTeams called - Request user:", {
       userId: req.user?.userId,
-      roleName: req.user?.roleName
+      roleName: req.user?.roleName,
     });
 
     // Check if user data is available
     if (!req.user || !req.user.roleName) {
-      console.error('Missing user data in request');
-      return res.status(400).json({ message: "User role information is missing" });
+      console.error("Missing user data in request");
+      return res
+        .status(400)
+        .json({ message: "User role information is missing" });
     }
 
     const role = req.user.roleName;
@@ -269,21 +275,21 @@ export const listTeams = async (req, res) => {
 
     if (role === "Sales Team Lead") {
       filter = { lead: req.user.userId };
-      console.log('Filtering for Team Lead:', req.user.userId);
+      console.log("Filtering for Team Lead:", req.user.userId);
     }
     if (role === "Sales Representatives") {
       filter = { members: req.user.userId };
-      console.log('Filtering for Sales Rep:', req.user.userId);
+      console.log("Filtering for Sales Rep:", req.user.userId);
     }
     if (role === "Sales Manager") {
       filter = { manager: req.user.userId };
     }
-    console.log('Applying filter:', filter);
+    console.log("Applying filter:", filter);
 
     const teams = await getTeams(filter);
-    
+
     if (!teams) {
-      console.log('No teams found for filter');
+      console.log("No teams found for filter");
       return res.status(404).json({ message: "No teams found" });
     }
 
@@ -292,10 +298,10 @@ export const listTeams = async (req, res) => {
   } catch (err) {
     console.error("Error in listTeams:", err);
     console.error("Stack trace:", err.stack);
-    res.status(500).json({ 
-      message: "Failed to fetch teams", 
+    res.status(500).json({
+      message: "Failed to fetch teams",
       error: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
   }
 };
@@ -315,7 +321,7 @@ export const addMembers = async (req, res) => {
       .json({ error: "Team with id " + id + " not found to add team members" });
   }
   const membersList = team.members.map((m) => m.name).join(", ");
-  clearCache('/api/team');
+  clearCache("/api/team");
   res.json({
     team,
     message: `Team:${team.name} is added with ${memberIds.length} members. Team members are: ${membersList}`,
@@ -358,11 +364,35 @@ export const setLead = async (req, res) => {
   );
   if (!user) return res.status(404).json({ error: "User not found" });
 
-  clearCache('/api/team');
+  clearCache("/api/team");
   res.json({
     team,
     message:
       "Team: " + team.name + " is set with a new team lead " + team.lead.name,
+  });
+};
+
+export const setManager = async (req, res) => {
+  req.shouldLog = true;
+  const { teamId, managerId } = req.body;
+  const team = await Team.findById(teamId);
+  if (!team) {
+    return res
+      .status(404)
+      .json({ error: "Team with id: " + id + " not found" });
+  }
+  const manager = await User.findById(managerId);
+  if (!manager) {
+    return res
+      .status(404)
+      .json({ error: "Manager with id: " + id + " not found" });
+  }
+  team.manager = manager;
+  await team.save();
+  clearCache("/api/team");
+  return res.json({
+    message: `Manager: ${manager.name} is set for Team: ${team.name} successfully`,
+    team,
   });
 };
 
@@ -374,9 +404,11 @@ export const deleteTeam = async (req, res) => {
     const team = await Team.findById(id);
     console.log("Deleting team:", team);
     if (!team) {
-      return res.status(404).json({ error: "Team with id: " + id + " not found" });
+      return res
+        .status(404)
+        .json({ error: "Team with id: " + id + " not found" });
     }
-    
+
     // Step 2: Clear leads related to this team
     let leadsUpdated = false;
     if (team.leadsAssigned && team.leadsAssigned.length > 0) {
@@ -395,7 +427,9 @@ export const deleteTeam = async (req, res) => {
     let leadRoleUpdated = false;
     if (team.lead) {
       const exTeamLeadId = team.lead._id || team.lead;
-      const salesRepRole = await Role.findOne({ name: "Sales Representatives" });
+      const salesRepRole = await Role.findOne({
+        name: "Sales Representatives",
+      });
 
       if (salesRepRole) {
         await User.findByIdAndUpdate(exTeamLeadId, { role: salesRepRole._id });
@@ -412,14 +446,18 @@ export const deleteTeam = async (req, res) => {
     // Step 4: Delete the team only if both updates succeeded
     if (leadsUpdated && leadRoleUpdated) {
       console.log("deleting tea,,,,,,,,,,,,,");
-      clearCache('/api/team');
+      clearCache("/api/team");
       const deletedTeam = await Team.findByIdAndDelete(id);
       return res.json({
         message: `Team: ${team.name} deleted successfully`,
         deletedTeam,
       });
     } else {
-      return res.status(500).json({ error: "Failed to update leads or lead role, team not deleted" });
+      return res
+        .status(500)
+        .json({
+          error: "Failed to update leads or lead role, team not deleted",
+        });
     }
   } catch (error) {
     console.error("Error deleting team:", error);
@@ -456,7 +494,7 @@ export const editTeam = async (req, res) => {
       { new: true }
     ).populate({ path: "members", select: "name email" });
     const membersList = updatedTeam.members.map((m) => m.name).join(", ");
-    clearCache('/api/team');
+    clearCache("/api/team");
     res.status(200).json({
       message: `Team: ${currentTeam.name} updated successfully. Updated team details: Team name: ${updatedTeam.name}, Team members: ${membersList}`,
       updatedTeam,
