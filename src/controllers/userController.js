@@ -81,7 +81,10 @@ export const getUsersByRole = async (req, res) => {
       return res.status(400).json({ error: "roleId is required" });
     }
 
-    const users = await User.find({ role: roleId }).populate("role", "name"); //O(log n)
+    const users = await User.find({
+      role: roleId,
+      status: { $ne: "inactive" },
+    }).populate("role", "name"); //O(log n)
     if (!users || users.length === 0) {
       return res.status(404).json({ error: "Users with given role not found" });
     }
@@ -248,7 +251,7 @@ export const updateUserDetails = async (req, res) => {
     email = email?.trim().toLowerCase();
     status = status?.trim();
     phone = phone?.trim();
-    console.log("Email "+email)
+    console.log("Email " + email);
 
     const errorMessage = validateFields({ name, email, phone });
     if (errorMessage != "") {
@@ -277,7 +280,7 @@ export const updateUserDetails = async (req, res) => {
     req.logInfo = {
       message: `User updated. Details : ${updatedUser.name}, ${updatedUser.email}, ${updatedUser.status}, ${updatedUser?.phone}`,
       target: updatedUser.email,
-      user: req.user?.email
+      user: req.user?.email,
     };
 
     res.json({

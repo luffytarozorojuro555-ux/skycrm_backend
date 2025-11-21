@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authRequired, permit } from '../middleware/auth.js';
-import { createTeam, listTeams, addMembers, setLead, deleteTeam, editTeam, getTeamDetailsForLead} from '../controllers/teamController.js';
+import { createTeam, listTeams, addMembers, setLead, setManager, deleteTeam, editTeam, getTeamDetailsForLead} from '../controllers/teamController.js';
 
 const router = Router();
 
@@ -8,6 +8,7 @@ const router = Router();
 router.get('/my-team', authRequired, permit('Admin', 'Sales Team Lead'), getTeamDetailsForLead);
 
 router.post('/', authRequired, permit('Admin','Sales Manager'), createTeam);
+router.post('/setManager', authRequired, permit('Admin'), setManager);
 router.get('/', authRequired, listTeams);
 router.post('/:id/members', authRequired, permit('Admin','Sales Manager'), addMembers);
 router.post('/:id/lead', authRequired, permit('Admin','Sales Manager'), setLead);
