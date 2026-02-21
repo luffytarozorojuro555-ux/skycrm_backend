@@ -76,6 +76,8 @@ export const emailTemplates = {
 // Wrapper function for sending emails
 export const sendEmail = async (to, template, data = {}) => {
   try {
+    console.log("Sending from:", process.env.EMAIL_FROM);
+    console.log("Using API key:", process.env.MAILJET_API_KEY ? "YES" : "NO");
     const cc = process.env.EMAIL_CC
       ? process.env.EMAIL_CC.split(",").map((email) => ({ Email: email }))
       : [];
