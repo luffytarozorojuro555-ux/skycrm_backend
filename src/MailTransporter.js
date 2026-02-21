@@ -38,10 +38,17 @@ export const emailTemplates = {
             Regards,<br />
             SKY CRM Team
           </p>
-          <hr style="border:none; border-top:1px solid #eee; margin: 20px 0;" />
-          <div style="float:right; padding: 8px 0; color:#aaa; font-size:0.8em; line-height:1; font-weight:300;">
-            <p>SKY CRM Inc</p>
-          </div>
+          
+          <hr style="border:none; border-top:1px solid #e5e5e5; margin: 25px 0;" />
+
+          <p style="font-size: 12px; color: #777777; line-height: 1.6; margin: 0;">
+  <strong>This is an automated email.</strong><br />
+  Please do not reply to this message as this inbox is not monitored.
+</p>
+
+<p style="font-size: 12px; color: #aaaaaa; margin-top: 10px;">
+  © 2026 SKY CRM. All rights reserved.
+</p>
         </div>
       </div>
     `,
