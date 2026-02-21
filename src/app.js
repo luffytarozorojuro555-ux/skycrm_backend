@@ -59,6 +59,12 @@ app.use('/uploads', express.static(path.join(__dirname, '..', uploadDir), {
   etag: true
 }));
 
+
+app.get("/", (req, res) => {
+  res.status(200).send("SkyCRM backend is running");
+});
+
+
 app.get('/api/health', (req,res) => res.json({ ok: true, service: 'skycrm-backend' }));
 
 app.use('/api/auth', authRoutes);
