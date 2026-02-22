@@ -1,3 +1,4 @@
+console.log("🔥 THIS IS THE SERVER FILE RUNNING IN PRODUCTION");
 import dotenv from 'dotenv';
 dotenv.config();
 import http from 'http';
