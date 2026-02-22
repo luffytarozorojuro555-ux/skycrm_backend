@@ -6,6 +6,9 @@ const router = express.Router();
 router.get('/debug-route', (req, res) => {
   res.json({ message: "Users route is mounted correctly" });
 });
+router.post("/usersByRole", (req, res) => {
+  res.json({ working: true });
+});
 router.get('/', authRequired, permit('Admin','Sales Manager'), listUsers);
 router.get('/paginationUsersList',authRequired, permit('Admin','Sales Manager'), listUsers);
 router.get('/usersByRole', authRequired, permit('Admin'), getUsersByRole);
