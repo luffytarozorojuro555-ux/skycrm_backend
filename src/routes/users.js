@@ -3,6 +3,9 @@ import { listUsers, getUserDetails, getUsersByRole, updateUserDetails, deleteUse
 import { authRequired, permit } from '../middleware/auth.js';
 const router = express.Router();
 
+router.get('/debug-route', (req, res) => {
+  res.json({ message: "Users route is mounted correctly" });
+});
 router.get('/', authRequired, permit('Admin','Sales Manager'), listUsers);
 router.get('/paginationUsersList',authRequired, permit('Admin','Sales Manager'), listUsers);
 router.get('/usersByRole', authRequired, permit('Admin'), getUsersByRole);
