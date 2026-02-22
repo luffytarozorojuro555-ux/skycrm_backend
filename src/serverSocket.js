@@ -1,36 +1,28 @@
 import { Server } from "socket.io";
 
 let io;
-const allowedOrigins = [
-  "https://www.skycrm.co.in"
-];
 
 export function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
+      origin: process.env.CORS_ORIGIN || "http://localhost:5173",
       methods: ["GET", "POST"],
-      credentials: true
-    }
+      credentials: true,
+    },
   });
 
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
-  });
-}
 
-  io.on("connection", (socket) => {
-    console.log("Client connected:", socket.id);
+    socket.on("disconnect", () => {
+      console.log("Client disconnected:", socket.id);
+    });
   });
 }
 
 export function getIO() {
-  if (!io) throw new Error("Socket.io not initialized!");
+  if (!io) {
+    throw new Error("Socket.io not initialized!");
+  }
   return io;
 }
