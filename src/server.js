@@ -61,14 +61,34 @@ const createApp = () => {
   // Connect DB will be done in start()
 
   // CORS
-  app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-      ? process.env.CORS_ORIGIN //|| "https://skycrm-frontend-1.onrender.com"
-      : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  const allowedOrigins = [
+  "https://www.skycrm.co.in",
+  "https://skycrm.co.in"
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
     allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
-  }));
+  })
+);
+  
+  // app.use(cors({
+  //   origin: process.env.NODE_ENV === 'production' 
+  //     ? process.env.CORS_ORIGIN //|| "https://skycrm-frontend-1.onrender.com"
+  //     : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  //   credentials: true,
+  //   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
+  //   allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
+  // }));
 
   app.options('*', cors());
 
