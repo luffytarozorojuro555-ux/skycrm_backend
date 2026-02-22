@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 
 let io;
 const allowedOrigins = [
-  "https://www.skycrm.co.in",
+  "https://www.skycrm.co.in"
 ];
 
 export function initSocket(server) {
