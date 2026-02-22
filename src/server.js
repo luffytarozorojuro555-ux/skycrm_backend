@@ -107,7 +107,9 @@ app.use(
   }));
 
   // Health
-  app.get('/api/health', (req, res) => res.json({ ok: true, service: 'skycrm-backend' }));
+  app.get('/api/health', (req, res) => {
+    res.json({ ok: true, service: 'skycrm-backend' });
+   });
 
 
   app.use('/api/auth/login', loginLimiter);  // ⬅ Strict limiter for login
