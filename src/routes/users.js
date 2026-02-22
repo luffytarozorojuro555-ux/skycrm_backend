@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.get('/', authRequired, permit('Admin','Sales Manager'), listUsers);
 router.get('/paginationUsersList',authRequired, permit('Admin','Sales Manager'), listUsers);
+router.get('/usersByRole', authRequired, permit('Admin'), getUsersByRole);
 router.post('/usersByRole', authRequired, permit('Admin'), getUsersByRole);
 router.post('/getUserDetails', authRequired, permit('Admin'), getUserDetails);
 router.put('/updateUser', authRequired, permit('Admin'), updateUserDetails);
