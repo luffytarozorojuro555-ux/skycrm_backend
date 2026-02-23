@@ -85,9 +85,12 @@ export const getUsersByRole = async (req, res) => {
       role: roleId,
       status: { $ne: "inactive" },
     }).populate("role", "name"); //O(log n)
+    // if (!users || users.length === 0) {
+    //   return res.status(404).json({ error: "Users with given role not found" });
+    // }
     if (!users || users.length === 0) {
-      return res.status(404).json({ error: "Users with given role not found" });
-    }
+  return res.json([]); // return empty array instead of 404
+}
 
     res.json(
       users.map((u) => ({
