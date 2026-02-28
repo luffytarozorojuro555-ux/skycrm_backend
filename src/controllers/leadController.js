@@ -79,8 +79,15 @@ export const listLeads = async (req, res) => {
       ).default.findOne({ roleName: "Sales Manager" });
       return salesManager?._id;
     }
-    if (assignedTo === "me") filter.assignedTo = req.user.userId;
+    //if (assignedTo === "me") filter.assignedTo = req.user.userId;
 
+  if (assignedTo === "me") {
+  if (!req.user?._id && !req.user?.userId) {
+    return res.status(401).json({ error: "Invalid auth user" });
+  }
+  filter.assignedTo = req.user._id ?? req.user.userId;
+}
+    
     if (currentRoute === "/") {
       const leads = await Lead.find(filter)
         .populate("status")
