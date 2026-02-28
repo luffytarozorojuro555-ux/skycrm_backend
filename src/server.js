@@ -64,7 +64,10 @@ const createApp = () => {
   // CORS
   const allowedOrigins = [
   "https://www.skycrm.co.in",
-  "https://skycrm.co.in"
+  "https://skycrm.co.in",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000"
 ];
 
 app.use(

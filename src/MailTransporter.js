@@ -78,6 +78,53 @@ export const emailTemplates = {
       </div>
     `,
   }),
+
+  contact: (name, email, phone, company, details) => ({
+    subject: `New Contact Inquiry from ${name} (${company})`,
+    html: `
+      <div style="font-family: Helvetica, Arial, sans-serif; min-width: 1000px; overflow:auto; line-height:1.6; background-color: #f7f7f7; padding: 20px 0;">
+        <div style="margin: 50px auto; width: 70%; padding: 40px; background-color: #ffffff; border-radius: 12px; shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="font-size: 1.8em; color: #1e3a8a; margin: 0;">New Contact Inquiry</h1>
+            <p style="color: #6b7280; font-size: 0.9em; margin-top: 5px;">Sky CRM Enterprise Platform</p>
+          </div>
+          
+          <div style="margin-bottom: 25px;">
+            <h2 style="font-size: 1.2em; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Contact Details</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; width: 150px;"><strong>Name:</strong></td>
+                <td style="padding: 8px 0; color: #111827;">${name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563;"><strong>Email:</strong></td>
+                <td style="padding: 8px 0; color: #111827;">${email}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563;"><strong>Phone:</strong></td>
+                <td style="padding: 8px 0; color: #111827;">${phone}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563;"><strong>Company:</strong></td>
+                <td style="padding: 8px 0; color: #111827;">${company}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="margin-bottom: 25px;">
+            <h2 style="font-size: 1.2em; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Inquiry Details</h2>
+            <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; color: #374151; margin-top: 10px; white-space: pre-wrap;">
+              ${details}
+            </div>
+          </div>
+
+          <p style="font-size: 0.85em; color: #6b7280; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            This inquiry was sent from the Sky CRM landing page contact form.
+          </p>
+        </div>
+      </div>
+    `,
+  }),
 };
 
 // Wrapper function for sending emails

@@ -3,7 +3,7 @@ const router = express.Router();
 import { resetPassword } from '../controllers/authController.js';
 // Reset password after OTP verification
 // import { login, register, changePassword, sendRecoveryEmail, logout} from '../controllers/authController.js';
-import { login, register, changePassword, sendRecoveryEmail, logout, logoutBeacon, heartbeat, validateSession } from '../controllers/authController.js';
+import { login, register, changePassword, sendRecoveryEmail, logout, logoutBeacon, heartbeat, validateSession, submitContactForm } from '../controllers/authController.js';
 import { authRequired, permit } from '../middleware/auth.js';
 import { listLogs } from '../controllers/logController.js';
 import { generateReport } from '../controllers/reportController.js';
@@ -33,4 +33,5 @@ router.post('/register', authRequired, permit('Admin','Sales Manager'), register
 router.post('/change-password', authRequired, changePassword);
 router.get('/logs',authRequired, permit('Admin','Sales Manager'), listLogs);
 router.get('/report',authRequired, permit('Admin',"Sales Manager"), generateReport);
+router.post('/contact', submitContactForm);
 export default router;

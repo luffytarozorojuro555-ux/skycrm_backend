@@ -465,3 +465,29 @@ export const refreshSession = async (req, res) => {
 
   res.json({ token: newToken });
 };
+
+export const submitContactForm = async (req, res) => {
+  const { name, email, phone, company, details } = req.body;
+
+  if (!name || !email || !details) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    // Send to admin email (from EMAIL_CC or specific admin email)
+    const adminEmail = process.env.EMAIL_CC?.split(",")[0] || "admin@skycrm.co.in";
+    
+    await sendEmail(adminEmail, "contact", {
+      name,
+      email,
+      phone: phone || "Not provided",
+      company: company || "Not provided",
+      details
+    });
+
+    res.json({ message: "Contact request sent successfully" });
+  } catch (err) {
+    console.error("Failed to process contact form:", err);
+    res.status(500).json({ error: "Failed to send message. Please try again later." });
+  }
+};
