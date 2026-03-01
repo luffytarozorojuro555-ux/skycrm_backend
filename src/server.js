@@ -124,10 +124,10 @@ app.use(
   app.use(pendingLogoutMiddleware);
   // Session management endpoints
   app.use('/api/session', sessionRoutes);
-  app.use('/api/roles',redisCacheMiddleware,roleRoutes);
-  app.use('/api/statuses',redisCacheMiddleware, statusRoutes);
-   app.use('/api/leads', redisCacheMiddleware, leadRoutes);
-  app.use('/api/team',redisCacheMiddleware,teamRoutes);
+  app.use('/api/roles',roleRoutes);
+  app.use('/api/statuses', statusRoutes);
+   app.use('/api/leads', leadRoutes);
+  app.use('/api/team',teamRoutes);
   app.use('/api/stats', statsRoutes);
   app.use('/api/users', userRoutes);
 
