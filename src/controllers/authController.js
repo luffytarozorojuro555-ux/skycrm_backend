@@ -74,8 +74,6 @@ export const login = async (req, res) => {
       lastLogin: new Date(),
       lastLogout: null,
     });
-
-    req.logInfo = { message: "Login of user:" + user.email + " Successful" };
     // Send response
     res.json({
       token,
@@ -90,7 +88,6 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
-    req.logInfo = { error: "Login failed: Error occured is - " + error };
     return res
       .status(500)
       .json({ error: "Login failed: Error occured is - " + error });
@@ -99,7 +96,6 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    req.shouldLog = true;
     const userId = req.user.userId;
     const email = req.user.email;
     const redisClient = getRedisClient();
