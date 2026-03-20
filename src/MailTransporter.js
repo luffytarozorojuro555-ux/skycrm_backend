@@ -11,29 +11,50 @@ const mailjet = Mailjet.apiConnect(
 
 // Email templates
 export const emailTemplates = {
-  registration: (name, tempPassword) => ({
+  registration: (name, tempPassword) => {
+  const loginUrl = process.env.FRONTEND_URL || "https://skycrm.co.in/login";
+
+  return {
     subject: "SKY CRM - Your Account Has Been Created",
     html: `
       <div style="font-family: Helvetica, Arial, sans-serif; min-width: 1000px; overflow:auto; line-height:1.6; background-color: #f7f7f7; padding: 20px 0;">
         <div style="margin: 50px auto; width: 70%; padding: 20px; background-color: #ffffff; border-radius: 8px;">
+          
           <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
-            <a href="#" style="font-size: 1.4em; color: #00466a; text-decoration: none; font-weight: 600;">
+            <span style="font-size: 1.4em; color: #00466a; font-weight: 600;">
               SKY CRM
-            </a>
+            </span>
           </div>
+
           <p style="font-size: 1.1em; margin-bottom: 10px;">Hello ${name},</p>
+
           <p style="margin-bottom: 15px;">
-            Your account has been created by the admin. 
+            Your account has been created by the admin.<br/>
             Your temporary password is:
             <b style="font-weight: 600; color: #00466a;">${tempPassword}</b>
           </p>
-          <p style="margin-bottom: 20px;">
-            Please 
-            <a href="${ "https://skycrm.co.in/login" || process.env.VITE_API_URL }" style="color: #00466a; text-decoration: underline;">
-              login
-            </a> 
-            and change your password immediately.
+
+          <!-- ✅ LOGIN BUTTON -->
+          <div style="text-align:center; margin: 30px 0;">
+            <a href="${loginUrl}" 
+              style="
+                display:inline-block;
+                padding:12px 24px;
+                background:#00466a;
+                color:#ffffff;
+                border-radius:6px;
+                text-decoration:none;
+                font-weight:bold;
+                font-size:14px;
+              ">
+              Login Now
+            </a>
+          </div>
+
+          <p style="font-size: 0.9em; color: #555;">
+            Please login and change your password immediately.
           </p>
+
           <p style="font-size: 0.9em; color: #555;">
             Regards,<br />
             SKY CRM Team
@@ -41,18 +62,19 @@ export const emailTemplates = {
           
           <hr style="border:none; border-top:1px solid #e5e5e5; margin: 25px 0;" />
 
-          <p style="font-size: 12px; color: #777777; line-height: 1.6; margin: 0;">
-  <strong>This is an automated email.</strong><br />
-  Please do not reply to this message as this inbox is not monitored.
-</p>
+          <p style="font-size: 12px; color: #777777;">
+            <strong>This is an automated email.</strong><br />
+            Please do not reply to this message.
+          </p>
 
-<p style="font-size: 12px; color: #aaaaaa; margin-top: 10px;">
-  © 2026 SKY CRM. All rights reserved.
-</p>
+          <p style="font-size: 12px; color: #aaaaaa; margin-top: 10px;">
+            © 2026 SKY CRM. All rights reserved.
+          </p>
         </div>
       </div>
     `,
-  }),
+  };
+},
 
   forgotPassword: (name, resetToken, resetUrl) => ({
     subject: "SKY CRM PASSWORD RECOVERY",
