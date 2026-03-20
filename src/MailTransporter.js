@@ -36,7 +36,7 @@ export const emailTemplates = {
 
           <!-- ✅ LOGIN BUTTON -->
           <div style="text-align:center; margin: 30px 0;">
-            <a href="${loginUrl}" 
+            <a href="https://skycrm.co.in/login" 
               style="
                 display:inline-block;
                 padding:12px 24px;
