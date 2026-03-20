@@ -29,7 +29,7 @@ export const emailTemplates = {
           </p>
           <p style="margin-bottom: 20px;">
             Please 
-            <a href="${process.env.VITE_API_URL || "http://localhost:5173"}" style="color: #00466a; text-decoration: underline;">
+            <a href="${process.env.VITE_API_URL || "https://skycrm.co.in/login"}" style="color: #00466a; text-decoration: underline;">
               login
             </a> 
             and change your password immediately.
