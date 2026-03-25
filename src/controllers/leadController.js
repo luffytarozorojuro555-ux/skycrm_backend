@@ -87,7 +87,7 @@
 //   }
 //   filter.assignedTo = req.user._id ?? req.user.userId;
 // }
-    
+
 //     if (currentRoute === "/") {
 //       const leads = await Lead.find(filter)
 //         .populate("status")
@@ -254,9 +254,9 @@
 //   clearCache("/api/leads"); // Clear list cache
 //   res.json({
 //     lead,
-//     message: `Lead ${lead.email} updated successfully. Updated details: 
+//     message: `Lead ${lead.email} updated successfully. Updated details:
 //     Name: ${lead?.name}
-//     Phone: ${lead?.phone} 
+//     Phone: ${lead?.phone}
 //     City: ${lead?.city}
 //     Source: ${lead?.source}
 //     College: ${lead?.college.length==0 ? "N/A": lead?.college}
@@ -880,15 +880,20 @@ import validateFields from "../utils/validateFields.js";
 
 const canSeeLead = (req, lead) => {
   const role = req.user.roleName;
-  if (role === "Admin" || role === "Sales Manager" || role==="Sales Team Lead" || role === "Sales Representatives")
+  if (
+    role === "Admin" ||
+    role === "Sales Manager" ||
+    role === "Sales Team Lead" ||
+    role === "Sales Representatives"
+  )
     return true;
-  
+
   return false;
 };
 
 export const listLeads = async (req, res) => {
   try {
-    console.log('hellloooo')
+    console.log("hellloooo");
     const role = req.user.roleName;
     const currentRoute = req.route.path;
     console.log(currentRoute);
@@ -921,8 +926,8 @@ export const listLeads = async (req, res) => {
         .populate("assignedTo", "name email")
         .populate("teamId", "name lead");
       // No filtering: all roles see all leads
-      console.log("sales rep")
-      res.json({leads,curUser:req.user?.userId});
+      console.log("sales rep");
+      res.json({ leads, curUser: req.user?.userId });
     } else {
       const skip = (parseInt(page) - 1) * parseInt(limit);
       const totalLeads = await Lead.countDocuments(filter);
@@ -935,7 +940,7 @@ export const listLeads = async (req, res) => {
 
       res.json({
         leads,
-        curUser:req.user.userId,
+        curUser: req.user.userId,
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(totalLeads / limit),
@@ -1083,7 +1088,7 @@ export const updateLead = async (req, res) => {
     Phone: ${lead?.phone} 
     City: ${lead?.city}
     Source: ${lead?.source}
-    College: ${lead?.college.length==0 ? "N/A": lead?.college}
+    College: ${lead?.college.length == 0 ? "N/A" : lead?.college}
     Year Of Passout: ${lead?.yearOfPassout?.getFullYear() || "N/A"}
     Status: ${lead?.status?.name}
     Assigned to: ${lead.assignedTo?.name || "Not Assigned"}
@@ -1157,7 +1162,7 @@ export const listFollowUps = async (req, res) => {
   const items = await (
     await FollowUp.find({ lead: req.params.id }).populate(
       "assignedTo",
-      "name email"
+      "name email",
     )
   ).sort({ dueAt: 1 });
   res.json(items);
@@ -1361,7 +1366,7 @@ export const bulkAssignLeads = async (req, res) => {
           $push: {
             history: {
               status: leads.find(
-                (l) => l._id.toString() === assignment.leadId.toString()
+                (l) => l._id.toString() === assignment.leadId.toString(),
               ).status,
               by: req.user.userId,
               at: new Date(),
@@ -1369,8 +1374,8 @@ export const bulkAssignLeads = async (req, res) => {
             },
           },
         },
-        { new: true }
-      )
+        { new: true },
+      ),
     );
     await Promise.all(updatePromises);
 
@@ -1463,14 +1468,42 @@ export const addCommentToLead = async (req, res) => {
     const updatedLead = await Lead.findById(id)
       .populate("comments.by", "name email")
       .select("comments");
-    req.logInfo = {message: "Comment added successfully to lead: "+lead.email}
+    req.logInfo = {
+      message: "Comment added successfully to lead: " + lead.email,
+    };
     return res.status(201).json({
-      message: "Comment added successfully to lead "+lead.email,
+      message: "Comment added successfully to lead " + lead.email,
       comments: updatedLead.comments,
     });
   } catch (err) {
     console.error("❌ Error adding comment:", err);
-    req.logInfo = {errpr:"Failed to add comment to lead: "+lead.email+". Error: "+err.message}
+    req.logInfo = {
+      errpr:
+        "Failed to add comment to lead: " +
+        lead.email +
+        ". Error: " +
+        err.message,
+    };
     return res.status(500).json({ error: err.message || "Server error" });
+  }
+};
+
+export const deleteAllLeads = async (req, res) => {
+  try {
+    const result = await Lead.deleteMany({});
+
+    return res.status(200).json({
+      success: true,
+      message: "All leads deleted successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete leads",
+      error: error.message,
+    });
   }
 };
