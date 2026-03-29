@@ -7,16 +7,16 @@ import { listLeads, getLead, createLead, updateLead, changeStatus, addNote, crea
 const router = Router();
 
 router.get('/', authRequired, listLeads);
-router.get('/paginationLeadsList', authRequired, listLeads);
-router.get('/:id', authRequired, getLead);
 router.post('/', authRequired, permit('Admin','Sales Manager'), createLead);
+router.delete('/deleteAllLeads', authRequired, permit('Admin','Sales Manager'), deleteAllLeads);
+router.post('/bulk-assign', authRequired, permit('Admin','Sales Manager'), bulkAssignLeads);
+router.get('/:id', authRequired, getLead);
 router.put('/:id', authRequired, updateLead);
 router.post('/:id/status', authRequired, changeStatus);
 router.post('/:id/notes', authRequired, addNote);
 router.post('/:id/followups', authRequired, createFollowUp);
 router.get('/:id/followups', authRequired, listFollowUps);
 router.post('/:id/comments', authRequired, addCommentToLead);
-router.delete('/deleteAllLeads', authRequired, permit('Admin','Sales Manager'), deleteAllLeads);
 // uploads
 const storage = multer.diskStorage({
   destination: (req,file,cb) => cb(null, path.join(process.cwd(), 'backend', 'uploads')),
@@ -24,9 +24,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 const memoryUpload = multer({ storage: multer.memoryStorage() });
-router.post('/:id/attachments', authRequired, upload.single('file'), uploadAttachment);
 router.post('/import/csv', authRequired, permit('Admin','Sales Manager'), memoryUpload.single('file'), importLeads);
-router.post('/bulk-assign', authRequired, permit('Admin','Sales Manager'), bulkAssignLeads);
+router.post('/:id/attachments', authRequired, upload.single('file'), uploadAttachment);
 router.delete('/:id', authRequired, permit('Admin','Sales Manager'), deleteLead);
 
 export default router;
