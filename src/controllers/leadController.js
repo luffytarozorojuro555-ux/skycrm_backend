@@ -86,6 +86,13 @@ export const listLeads = async (req, res) => {
       .populate("status")
       .populate("assignedTo", "name email")
       .populate("teamId", "name lead")
+      .populate({
+        path: "history",
+        populate: [
+          { path: "status", select: "name" },
+          { path: "by", select: "name email" },
+        ],
+      })
       .skip(skip)
       .limit(limitNum);
 
