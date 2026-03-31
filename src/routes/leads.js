@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authRequired, permit } from '../middleware/auth.js';
-import { listLeads, getLead, createLead, updateLead, changeStatus, addNote, createFollowUp, listFollowUps, uploadAttachment, importLeads,  bulkAssignLeads,addCommentToLead ,deleteLead, deleteAllLeads} from '../controllers/leadController.js';
+import { listLeads, getLead, createLead, updateLead, changeStatus, addNote, createFollowUp, listFollowUps, uploadAttachment, importLeads,  bulkAssignLeads,addCommentToLead ,deleteLead, deleteAllLeads, bulkDeleteLeads} from '../controllers/leadController.js';
 
 const router = Router();
 
@@ -10,6 +10,7 @@ router.get('/', authRequired, listLeads);
 router.post('/', authRequired, permit('Admin','Sales Manager'), createLead);
 router.delete('/deleteAllLeads', authRequired, permit('Admin','Sales Manager'), deleteAllLeads);
 router.post('/bulk-assign', authRequired, permit('Admin','Sales Manager'), bulkAssignLeads);
+router.delete('/bulk-delete', authRequired, permit('Admin','Sales Manager'), bulkDeleteLeads);
 router.get('/:id', authRequired, getLead);
 router.put('/:id', authRequired, updateLead);
 router.post('/:id/status', authRequired, changeStatus);

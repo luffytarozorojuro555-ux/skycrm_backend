@@ -485,7 +485,7 @@ export const importLeads = async (req, res) => {
 export const bulkAssignLeads = async (req, res) => {
   console.log("bulk upload function ............", req.body);
   try {
-    const { leadIds, teamId } = req.body;
+    const { leadIds, teamId, assignments: customAssignments } = req.body;
 
     // ✅ Validate input
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
@@ -524,29 +524,71 @@ export const bulkAssignLeads = async (req, res) => {
       });
     }
 
-    // ✅ Calculate fair distribution
     const leadCount = leads.length;
     const memberCount = teamMembers.length;
-    const baseLeadsPerMember = Math.floor(leadCount / memberCount);
-    const extraLeads = leadCount % memberCount;
 
-    // ✅ Assignment plan
-    const assignments = [];
-    let leadIndex = 0;
-    teamMembers.forEach((member, memberIndex) => {
-      const leadsForThisMember =
-        baseLeadsPerMember + (memberIndex < extraLeads ? 1 : 0);
-      for (let i = 0; i < leadsForThisMember; i++) {
-        if (leadIndex < leadCount) {
-          assignments.push({
-            leadId: leads[leadIndex]._id,
-            assignedTo: member._id,
-            teamId,
-          });
-          leadIndex++;
+    // ✅ Assignment plan - Check for custom distribution first
+    let assignments = [];
+    let distributionMethod = "equal"; // Track which method was used
+
+    if (customAssignments && Array.isArray(customAssignments) && customAssignments.length > 0) {
+      // ✅ USE CUSTOM DISTRIBUTION
+      console.log("Using custom distribution", customAssignments);
+      distributionMethod = "custom";
+
+      // Validate custom distribution
+      const totalCustomCount = customAssignments.reduce((sum, assignment) => sum + (assignment.count || 0), 0);
+      if (totalCustomCount !== leadCount) {
+        return res.status(400).json({
+          error: `Custom distribution invalid. Total assigned (${totalCustomCount}) must equal lead count (${leadCount})`,
+        });
+      }
+
+      // Build assignments based on custom distribution
+      let leadIndex = 0;
+      for (const customAssignment of customAssignments) {
+        const count = customAssignment.count || 0;
+        for (let i = 0; i < count; i++) {
+          if (leadIndex < leadCount) {
+            assignments.push({
+              leadId: leads[leadIndex]._id,
+              assignedTo: customAssignment.memberId,
+              teamId,
+            });
+            leadIndex++;
+          }
         }
       }
-    });
+
+      console.log("Custom distribution assignments created", {
+        totalAssignments: assignments.length,
+        distribution: customAssignments,
+      });
+    } else {
+      // ✅ FALLBACK TO EQUAL DISTRIBUTION
+      console.log("Using equal distribution (no custom assignments provided)");
+      distributionMethod = "equal";
+
+      const baseLeadsPerMember = Math.floor(leadCount / memberCount);
+      const extraLeads = leadCount % memberCount;
+
+      // Assignment plan
+      let leadIndex = 0;
+      teamMembers.forEach((member, memberIndex) => {
+        const leadsForThisMember =
+          baseLeadsPerMember + (memberIndex < extraLeads ? 1 : 0);
+        for (let i = 0; i < leadsForThisMember; i++) {
+          if (leadIndex < leadCount) {
+            assignments.push({
+              leadId: leads[leadIndex]._id,
+              assignedTo: member._id,
+              teamId,
+            });
+            leadIndex++;
+          }
+        }
+      });
+    }
 
     // ✅ Update leads in DB
     const updatePromises = assignments.map((assignment) =>
@@ -579,17 +621,32 @@ export const bulkAssignLeads = async (req, res) => {
     await team.save();
 
     req.logInfo = {
-      message: `${leadCount} leads assigned to team "${team.name}"`,
+      message: `${leadCount} leads assigned to team "${team.name}" using ${distributionMethod} distribution`,
     };
+
+    // ✅ Calculate distribution for response
+    let responseDistribution = [];
+    if (customAssignments && distributionMethod === "custom") {
+      responseDistribution = customAssignments.map(ca => ({
+        memberName: customAssignments.find(a => a.memberId === ca.memberId)?.memberName || "Unknown",
+        leadCount: ca.count || 0,
+      }));
+    } else {
+      const baseLeadsPerMember = Math.floor(leadCount / memberCount);
+      const extraLeads = leadCount % memberCount;
+      responseDistribution = teamMembers.map((member, index) => ({
+        memberName: member.name,
+        leadCount: baseLeadsPerMember + (index < extraLeads ? 1 : 0),
+      }));
+    }
+
     // ✅ Response
     res.json({
       success: true,
-      message: `${leadCount} leads assigned to team "${team.name}"`,
+      message: `${leadCount} leads assigned to team "${team.name}" using ${distributionMethod} distribution`,
       assignments: assignments.length,
-      distribution: teamMembers.map((member, index) => ({
-        memberName: member.name,
-        leadCount: baseLeadsPerMember + (index < extraLeads ? 1 : 0),
-      })),
+      distribution: responseDistribution,
+      distributionMethod,
       leadsAssigned: team.leadsAssigned,
     });
   } catch (error) {
@@ -677,6 +734,45 @@ export const addCommentToLead = async (req, res) => {
         err.message,
     };
     return res.status(500).json({ error: err.message || "Server error" });
+  }
+};
+
+export const bulkDeleteLeads = async (req, res) => {
+  try {
+    const { leadIds } = req.body;
+
+    // ✅ Validate input
+    if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ error: "Lead IDs are required" });
+    }
+
+    // ✅ Delete leads
+    const result = await Lead.deleteMany({
+      _id: { $in: leadIds },
+    });
+
+    // ✅ Log the deletion
+    console.log(`🗑️ Bulk deleted ${result.deletedCount} leads`);
+
+    req.logInfo = {
+      message: `${result.deletedCount} leads deleted successfully`,
+    };
+
+    // ✅ Response
+    return res.status(200).json({
+      success: true,
+      message: `${result.deletedCount} lead${result.deletedCount !== 1 ? "s" : ""} deleted successfully`,
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("Bulk delete failed:", error);
+    req.logInfo = { error: "Failed to delete leads" };
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete leads",
+      error: error.message,
+    });
   }
 };
 
