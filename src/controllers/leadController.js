@@ -5,8 +5,10 @@ import Note from "../models/Note.js";
 import FollowUp from "../models/FollowUp.js";
 import Attachment from "../models/Attachment.js";
 import csv from "csv-parser";
+import Notification from "../models/Notification.js";
 import { Readable } from "stream";
 import { populate } from "dotenv";
+import { getIO, userSocketMap } from "../serverSocket.js";
 import validateFields from "../utils/validateFields.js";
 
 const canSeeLead = (req, lead) => {
@@ -32,7 +34,13 @@ export const listLeads = async (req, res) => {
     }
 
     if (req.user.roleName === "Sales Manager") {
-      filter.uploadedBy = req.user.userId;
+      const Team = (await import("../models/Team.js")).default;
+
+      const teams = await Team.find({ manager: req.user.userId });
+
+      const teamIds = teams.map((t) => t._id);
+
+      filter.teamId = { $in: teamIds };
     }
 
     if (req.user.roleName === "Sales Team Lead") {
@@ -606,6 +614,57 @@ export const bulkAssignLeads = async (req, res) => {
       });
     }
 
+    const assignmentsByUser = {};
+
+    assignments.forEach((a) => {
+      if (!assignmentsByUser[a.assignedTo]) {
+        assignmentsByUser[a.assignedTo] = 0;
+      }
+      assignmentsByUser[a.assignedTo]++;
+    });
+
+    const notificationPromises = [];
+
+    const io = getIO();
+
+    Object.entries(assignmentsByUser).forEach(([userId, count]) => {
+      const message = `You have been assigned ${count} new lead(s)`;
+
+      notificationPromises.push(
+        Notification.create({
+          userId,
+          message,
+          type: "LEAD_ASSIGNED",
+        }),
+      );
+
+      // 🔴 REAL-TIME SEND
+      const socketId = userSocketMap[userId];
+      if (socketId) {
+        io.to(socketId).emit("notification", { message });
+      }
+    });
+
+    const totalLeadsAssigned = assignments.length;
+    const leadCountForLead = assignmentsByUser[team.lead] || 0;
+
+    if (team.lead) {
+      const message = `Your team is assigned with ${totalLeadsAssigned} new lead(s). ${leadCountForLead} leads assigned to you`;
+
+      notificationPromises.push(
+        Notification.create({
+          userId: team.lead,
+          message,
+          type: "TEAM_SUMMARY",
+        }),
+      );
+
+      const socketId = userSocketMap[team.lead];
+      if (socketId) {
+        io.to(socketId).emit("notification", { message });
+      }
+    }
+
     // ✅ Update leads in DB
     const updatePromises = assignments.map((assignment) =>
       Lead.findByIdAndUpdate(
@@ -628,6 +687,7 @@ export const bulkAssignLeads = async (req, res) => {
       ),
     );
     await Promise.all(updatePromises);
+    await Promise.all(notificationPromises);
 
     // ✅ Update team.leadsAssigned (handles null → array)
     if (!team.leadsAssigned) {

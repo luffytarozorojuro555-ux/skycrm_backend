@@ -1,35 +1,36 @@
 console.log("🔥 THIS IS THE SERVER FILE RUNNING IN PRODUCTION");
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
-import http from 'http';
-import express from 'express';
-import cors from 'cors';
-import morgan from 'morgan';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import connectDB from './config/db.js';
-import authRoutes from './routes/auth.js';
-import sessionRoutes from './routes/session.js';
-import roleRoutes from './routes/roles.js';
-import statusRoutes from './routes/statuses.js';
-import leadRoutes from './routes/leads.js';
-import teamRoutes from './routes/team.js';
-import userRoutes from './routes/users.js';
-import statsRoutes from './routes/stats.js';
-import { ensureDefaultAdmin } from './utils/setupDefaultUser.js';
-import { initSocket } from './serverSocket.js';
-import { loggerMiddleware } from './middleware/loggerMiddleware.js';
-import { redisCacheMiddleware } from './middleware/redisCache.js';
-import { connectRedis } from './config/redis.js';
+import http from "http";
+import express from "express";
+import cors from "cors";
+import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import connectDB from "./config/db.js";
+import authRoutes from "./routes/auth.js";
+import sessionRoutes from "./routes/session.js";
+import notificationRoutes from "./routes/notification.js";
+import roleRoutes from "./routes/roles.js";
+import statusRoutes from "./routes/statuses.js";
+import leadRoutes from "./routes/leads.js";
+import teamRoutes from "./routes/team.js";
+import userRoutes from "./routes/users.js";
+import statsRoutes from "./routes/stats.js";
+import { ensureDefaultAdmin } from "./utils/setupDefaultUser.js";
+import { initSocket } from "./serverSocket.js";
+import { loggerMiddleware } from "./middleware/loggerMiddleware.js";
+import { redisCacheMiddleware } from "./middleware/redisCache.js";
+import { connectRedis } from "./config/redis.js";
 import { ipKeyGenerator } from "express-rate-limit";
-import { createRateLimiter } from './utils/rateLimiter.js';
+import { createRateLimiter } from "./utils/rateLimiter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-import { pendingLogoutMiddleware } from './middleware/pendingLogout.js';
+import { pendingLogoutMiddleware } from "./middleware/pendingLogout.js";
 const PORT = process.env.PORT || 8000;
 
 const createApp = () => {
@@ -54,39 +55,39 @@ const createApp = () => {
     keyGenerator: (req) => req.body.email || ipKeyGenerator(req), // ✅ email fallback, IP-safe
   });
 
-  const generalLimiter= createRateLimiter({
+  const generalLimiter = createRateLimiter({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 60, // 60 requests per minute per IP
-    message: { error: 'Too many requests. Please slow down.' },
+    message: { error: "Too many requests. Please slow down." },
   });
   // Connect DB will be done in start()
 
   // CORS
   const allowedOrigins = [
-  "https://www.skycrm.co.in",
-  "https://skycrm.co.in",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:3000"
-];
+    "https://www.skycrm.co.in",
+    "https://skycrm.co.in",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+  ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-    methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
-  })
-);
-  
+  app.use(
+    cors({
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    }),
+  );
+
   // app.use(cors({
-  //   origin: process.env.NODE_ENV === 'production' 
+  //   origin: process.env.NODE_ENV === 'production'
   //     ? process.env.CORS_ORIGIN //|| "https://skycrm-frontend-1.onrender.com"
   //     : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
   //   credentials: true,
@@ -94,46 +95,50 @@ app.use(
   //   allowedHeaders: ['Content-Type','Authorization','X-Requested-With']
   // }));
 
-  app.options('*', cors());
+  app.options("*", cors());
 
   // Logging
-  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+  app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
   // Body parser
-  app.use(express.json({ limit: '2mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+  app.use(express.json({ limit: "2mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
   // Uploads
-  const uploadDir = process.env.UPLOAD_DIR || 'uploads';
-  app.use('/uploads', express.static(path.join(__dirname, '..', uploadDir), {
-    maxAge: '1d',
-    etag: true
-  }));
+  const uploadDir = process.env.UPLOAD_DIR || "uploads";
+  app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "..", uploadDir), {
+      maxAge: "1d",
+      etag: true,
+    }),
+  );
 
   // Health
-  app.get('/api/health', (req, res) => {
-    res.json({ ok: true, service: 'skycrm-backend' });
-   });
+  app.get("/api/health", (req, res) => {
+    res.json({ ok: true, service: "skycrm-backend" });
+  });
 
-
-  app.use('/api/auth/login', loginLimiter);  // ⬅ Strict limiter for login
-  app.use('/api/auth/register', loginLimiter); 
+  app.use("/api/auth/login", loginLimiter); // ⬅ Strict limiter for login
+  app.use("/api/auth/register", loginLimiter);
   // Routes
-  app.use('/api/auth', generalLimiter, authRoutes);
+  app.use("/api/auth", generalLimiter, authRoutes);
   // Pending logout check middleware (should be before protected routes)
   app.use(pendingLogoutMiddleware);
   // Session management endpoints
-  app.use('/api/session', sessionRoutes);
-  app.use('/api/roles',roleRoutes);
-  app.use('/api/statuses', statusRoutes);
-   app.use('/api/leads', leadRoutes);
-  app.use('/api/team',teamRoutes);
-  app.use('/api/stats', statsRoutes);
-  app.use('/api/users', userRoutes);
-
+  app.use("/api/session", sessionRoutes);
+  app.use("/api/roles", roleRoutes);
+  app.use("/api/statuses", statusRoutes);
+  app.use("/api/leads", leadRoutes);
+  app.use("/api/team", teamRoutes);
+  app.use("/api/stats", statsRoutes);
+  app.use("/api/users", userRoutes);
+  app.use("/api/notifications", notificationRoutes);
 
   // API 404
-  app.use('/api/*', (req, res) => res.status(404).json({ error: 'API endpoint not found' }));
+  app.use("/api/*", (req, res) =>
+    res.status(404).json({ error: "API endpoint not found" }),
+  );
 
   // Serve frontend in production
   // if (process.env.NODE_ENV === 'production') {
@@ -145,10 +150,11 @@ app.use(
 
   // Error handler
   app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    const error = process.env.NODE_ENV === 'production'
-      ? { error: 'Internal Server Error' }
-      : { error: err.message, stack: err.stack };
+    console.error("Error:", err);
+    const error =
+      process.env.NODE_ENV === "production"
+        ? { error: "Internal Server Error" }
+        : { error: err.message, stack: err.stack };
     res.status(err.status || 500).json(error);
   });
 
@@ -157,15 +163,18 @@ app.use(
 
 const start = async () => {
   await connectDB();
-  
+
   // Try to connect to Redis, but don't fail if it's not available
   try {
     await connectRedis();
     console.log("✅ Redis connected successfully");
   } catch (error) {
-    console.warn("⚠️ Redis connection failed, continuing without Redis:", error.message);
+    console.warn(
+      "⚠️ Redis connection failed, continuing without Redis:",
+      error.message,
+    );
   }
-  
+
   await ensureDefaultAdmin();
 
   const app = createApp();
@@ -178,7 +187,7 @@ const start = async () => {
   });
 };
 
-start().catch(e => {
-  console.error('Failed to start server', e);
+start().catch((e) => {
+  console.error("Failed to start server", e);
   process.exit(1);
 });

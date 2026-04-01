@@ -74,6 +74,9 @@ app.use('/api/leads', leadRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/stats', statsRoutes);
 app.use("/api/users",userRoutes);
+import notificationRoutes from "./routes/notificationRoutes.js";
+
+app.use("/notifications", notificationRoutes);
 
 // 404
 // API 404 handler

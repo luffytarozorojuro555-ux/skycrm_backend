@@ -1,7 +1,7 @@
 import { Server } from "socket.io";
 
 let io;
-
+const userSocketMap = {};
 export function initSocket(server) {
   io = new Server(server, {
     cors: {
@@ -14,9 +14,20 @@ export function initSocket(server) {
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
+    socket.on("register", (userId) => {
+      userSocketMap[userId] = socket.id;
+      console.log("User registered:", userId);
+    });
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });
+
+    for (let userId in userSocketMap) {
+      if (userSocketMap[userId] === socket.id) {
+        delete userSocketMap[userId];
+      }
+    }
   });
 }
 
@@ -26,3 +37,5 @@ export function getIO() {
   }
   return io;
 }
+
+export { userSocketMap };
