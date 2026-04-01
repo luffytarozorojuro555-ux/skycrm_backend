@@ -495,6 +495,22 @@ export const bulkAssignLeads = async (req, res) => {
       return res.status(400).json({ error: "Team ID is required" });
     }
 
+    // ✅ Validate ObjectIds - teamId
+    if (!mongoose.Types.ObjectId.isValid(teamId)) {
+      return res.status(400).json({ error: "Invalid Team ID format" });
+    }
+
+    // ✅ Validate ObjectIds - leadIds
+    const validLeadIds = leadIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validLeadIds.length !== leadIds.length) {
+      return res.status(400).json({ 
+        error: `Some lead IDs are in invalid format. Valid: ${validLeadIds.length}, Total: ${leadIds.length}` 
+      });
+    }
+
+    // ✅ Convert to ObjectIds if they are strings
+    const objectIdList = validLeadIds.map(id => new mongoose.Types.ObjectId(id));
+
     // ✅ Check if team exists and get team members
     const Team = (await import("../models/Team.js")).default;
     const team = await Team.findById(teamId).populate("members");
@@ -509,7 +525,7 @@ export const bulkAssignLeads = async (req, res) => {
 
     // ✅ Verify leads exist and are unassigned
     const leads = await Lead.find({
-      _id: { $in: leadIds },
+      _id: { $in: objectIdList },
       $or: [
         { assignedTo: { $exists: false } },
         { assignedTo: null },
@@ -746,13 +762,34 @@ export const bulkDeleteLeads = async (req, res) => {
       return res.status(400).json({ error: "Lead IDs are required" });
     }
 
+    // ✅ Validate ObjectIds and filter out invalid ones
+    const validLeadIds = leadIds.filter((id) => {
+      try {
+        // Check if valid MongoDB ObjectId format
+        return mongoose.Types.ObjectId.isValid(id);
+      } catch (err) {
+        console.warn(`Invalid lead ID format: ${id}`);
+        return false;
+      }
+    });
+
+    if (validLeadIds.length === 0) {
+      return res.status(400).json({ 
+        error: "No valid Lead IDs provided",
+        invalidCount: leadIds.length 
+      });
+    }
+
+    // ✅ Convert string IDs to ObjectIds
+    const objectIds = validLeadIds.map(id => new mongoose.Types.ObjectId(id));
+
     // ✅ Delete leads
     const result = await Lead.deleteMany({
-      _id: { $in: leadIds },
+      _id: { $in: objectIds },
     });
 
     // ✅ Log the deletion
-    console.log(`🗑️ Bulk deleted ${result.deletedCount} leads`);
+    console.log(`🗑️ Bulk deleted ${result.deletedCount} leads (validated from ${leadIds.length} IDs)`);
 
     req.logInfo = {
       message: `${result.deletedCount} leads deleted successfully`,
@@ -763,9 +800,11 @@ export const bulkDeleteLeads = async (req, res) => {
       success: true,
       message: `${result.deletedCount} lead${result.deletedCount !== 1 ? "s" : ""} deleted successfully`,
       deletedCount: result.deletedCount,
+      requestedCount: leadIds.length,
+      validCount: validLeadIds.length,
     });
   } catch (error) {
-    console.error("Bulk delete failed:", error);
+    console.error("Bulk delete failed:", error.message, error.stack);
     req.logInfo = { error: "Failed to delete leads" };
 
     return res.status(500).json({
